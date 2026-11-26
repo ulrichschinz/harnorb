@@ -744,3 +744,6 @@ zeigeKnopfText();
 setInterval(zeigeKnopfText, 500);
 // Interne Objekte nur für Vorschau und Diagnose (?diag) offenlegen
 if (VORSCHAU || new URLSearchParams(location.search).has("diag")) window.__harnoIntern = { kugel, automat, buehne, karten, hintergrund, fx };
+
+// installierbar als App (PWA), siehe /sw.js
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});

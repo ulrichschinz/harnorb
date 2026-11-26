@@ -1120,6 +1120,29 @@ def index():
     return FileResponse(WEB / "szene.html")
 
 
+# Progressive Web App: Manifest und Service Worker an der Wurzel (Geltungsbereich „/“), damit
+# Chrome und Edge die Oberfläche als eigenes Fenster installieren können. Der Service Worker
+# speichert nichts zwischen, die Oberfläche braucht ohnehin den laufenden Server.
+MANIFEST = {
+    "name": "HarnoRb", "short_name": "HarnoRb", "id": "/", "start_url": "/", "scope": "/",
+    "display": "standalone",
+    "background_color": "#020308", "theme_color": "#020308", "lang": "de",
+    "description": "Sprach-Oberfläche für ein Cockpit mit Claude Code",
+    "icons": [{"src": f"/static/logo/harnorb-{g}.png", "sizes": f"{g}x{g}", "type": "image/png", "purpose": "any"}
+              for g in (192, 256, 512, 1024)],
+}
+
+
+@app.get("/manifest.webmanifest")
+def manifest():
+    return JSONResponse(MANIFEST, media_type="application/manifest+json")
+
+
+@app.get("/sw.js")
+def service_worker():
+    return FileResponse(WEB / "sw.js", media_type="text/javascript", headers={"Cache-Control": "no-store"})
+
+
 @app.get("/klassisch")
 def klassisch():
     return FileResponse(WEB / "index.html")
