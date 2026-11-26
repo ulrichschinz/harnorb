@@ -18,9 +18,11 @@ Umgebung: uv venv .venv-fast; uv pip install faster-qwen3-tts fastapi uvicorn so
 Start:  python stimmdienst.py --host 192.168.1.50 --port 8470
 """
 import argparse
+import asyncio
 import io
 import json
 import os
+import queue
 import struct
 import threading
 import time
@@ -37,6 +39,8 @@ MODELL = os.environ.get("STIMMDIENST_MODELL", "Qwen/Qwen3-TTS-12Hz-1.7B-Base")
 STIMMEN = Path(os.environ.get("STIMMDIENST_STIMMEN", Path(__file__).parent / "stimmen")).expanduser()
 TOKEN = os.environ.get("STIMMDIENST_TOKEN", "")
 TEIL = int(os.environ.get("STIMMDIENST_TEIL", "6"))  # Schritte je Teil beim Streaming, 12 Schritte = 1 s Audio
+WARTEN = float(os.environ.get("STIMMDIENST_WARTEN", "30"))   # so lange höchstens auf die Grafikkarte warten, sonst 503
+HOECHSTENS = float(os.environ.get("STIMMDIENST_HOECHSTENS", "180"))  # Obergrenze je Auftrag in Sekunden
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 modell = None
@@ -99,23 +103,69 @@ def auftrag_pruefen(a, authorization):
     return sid
 
 
-@app.post("/sprich_strom")
-def sprich_strom(a: Auftrag, authorization: str = Header(default="")):
-    sid = auftrag_pruefen(a, authorization)
+def belegen():
+    """Grafikkarte belegen oder nach WARTEN Sekunden mit 503 aufgeben, statt ewig zu hängen."""
+    if not sperre.acquire(timeout=WARTEN):
+        raise HTTPException(503, "Stimmdienst ist belegt")
 
-    def teile():
-        t, erst, laenge = time.time(), None, 0.0
-        with sperre:
-            for audio, sr, _ in modell.generate_voice_clone_streaming(text=a.text, language=a.sprache, chunk_size=TEIL,
-                                                                      **vorlagen[sid]["ref"]):
+
+ENDE = object()
+
+
+@app.post("/sprich_strom")
+async def sprich_strom(a: Auftrag, authorization: str = Header(default="")):
+    sid = auftrag_pruefen(a, authorization)
+    await asyncio.to_thread(belegen)
+    stopp, fach = threading.Event(), queue.Queue()  # unbegrenzt: der Erzeuger blockiert nie, auch ohne Abnehmer
+
+    def erzeuge():
+        # Ein eigener Faden je Auftrag. Er gibt die Sperre in jedem Fall frei: am Ende, bei Fehlern und wenn der
+        # Abnehmer weg ist (stopp). Früher hielt ein abgebrochener Strom die Sperre für immer.
+        t, erst, laenge, abbruch = time.time(), None, 0.0, ""
+        strom = None
+        try:
+            strom = modell.generate_voice_clone_streaming(text=a.text, language=a.sprache, chunk_size=TEIL,
+                                                          **vorlagen[sid]["ref"])
+            for audio, sr, _ in strom:
+                if stopp.is_set():
+                    abbruch = ", abgebrochen"
+                    break
+                if time.time() - t > HOECHSTENS:
+                    abbruch = ", Zeitlimit"
+                    break
                 if len(audio) == 0:
                     continue
                 erst = erst or time.time() - t
                 laenge += len(audio) / sr
                 daten = wav(audio, sr)
-                yield struct.pack(">I", len(daten)) + daten
-        print(f"stimmdienst: {len(a.text)} Zeichen, {laenge:.1f} s Audio in {time.time() - t:.1f} s, "
-              f"erster Teil nach {erst or 0:.2f} s (Strom)", flush=True)
+                fach.put(struct.pack(">I", len(daten)) + daten)
+        except Exception as e:  # noqa: BLE001 - an den Abnehmer weiterreichen
+            abbruch = f", Fehler: {e}"
+            fach.put(e)
+        finally:
+            try:
+                if strom is not None:
+                    strom.close()
+            finally:
+                sperre.release()
+                fach.put(ENDE)
+                print(f"stimmdienst: {len(a.text)} Zeichen, {laenge:.1f} s Audio in {time.time() - t:.1f} s, "
+                      f"erster Teil nach {erst or 0:.2f} s (Strom{abbruch})", flush=True)
+
+    threading.Thread(target=erzeuge, name="stimmdienst-strom", daemon=True).start()
+
+    async def teile():
+        try:
+            while True:
+                try:
+                    x = await asyncio.to_thread(fach.get, True, HOECHSTENS)
+                except queue.Empty:
+                    return
+                if x is ENDE or isinstance(x, Exception):
+                    return
+                yield x
+        finally:  # läuft auch, wenn der Client trennt (Abbruch der Antwort)
+            stopp.set()
 
     return StreamingResponse(teile(), media_type="application/octet-stream")
 
@@ -124,8 +174,11 @@ def sprich_strom(a: Auftrag, authorization: str = Header(default="")):
 def sprich(a: Auftrag, authorization: str = Header(default="")):
     sid = auftrag_pruefen(a, authorization)
     t = time.time()
-    with sperre:
+    belegen()
+    try:
         wavs, sr = modell.generate_voice_clone(text=a.text, language=a.sprache, **vorlagen[sid]["ref"])
+    finally:
+        sperre.release()
     daten = wav(wavs[0], sr)
     dauer = time.time() - t
     print(f"stimmdienst: {len(a.text)} Zeichen, {len(wavs[0]) / sr:.1f} s Audio in {dauer:.1f} s", flush=True)
