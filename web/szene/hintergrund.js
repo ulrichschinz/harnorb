@@ -14,6 +14,7 @@ const NEBEL_VS = /* glsl */`varying vec3 vDir; void main(){ vDir = normalize(pos
 const NEBEL_FS = /* glsl */`
 uniform float uZeit, uOktaven, uComic, uSaett;
 uniform vec3 uNebel[3];
+uniform float uStaerke;
 varying vec3 vDir;
 ${RAUSCHEN}
 void main(){
@@ -21,10 +22,11 @@ void main(){
   float n = fbmN(d * 2.2 + vec3(uZeit * 0.004, 0.0, 0.0), uOktaven);
   float m = fbmN(d * 4.5 - vec3(0.0, uZeit * 0.003, 0.0) + n, uOktaven);
   float band = exp(-pow(dot(d, normalize(vec3(0.3, 1.0, -0.2))) * 2.4, 2.0)); // Milchstraßenband
-  vec3 c = vec3(0.002, 0.003, 0.010);
-  c += uNebel[0] * smoothstep(0.0, 0.9, n) * 0.16;
-  c += uNebel[1] * smoothstep(0.1, 0.9, m) * 0.12;
-  c += uNebel[2] * smoothstep(0.35, 1.0, n * m * 2.0) * 0.12;
+  // Grundton aus den Nebelfarben, damit der ganze Himmel die Theme-Farbe trägt
+  vec3 c = vec3(0.002, 0.003, 0.010) + (uNebel[0] + uNebel[1] + uNebel[2]) / 3.0 * 0.035 * uStaerke;
+  c += uNebel[0] * smoothstep(0.0, 0.9, n) * 0.15 * uStaerke;
+  c += uNebel[1] * smoothstep(0.1, 0.9, m) * 0.11 * uStaerke;
+  c += uNebel[2] * smoothstep(0.35, 1.0, n * m * 2.0) * 0.11 * uStaerke;
   c += vec3(0.12, 0.11, 0.16) * band * (0.35 + 0.65 * smoothstep(-0.2, 0.6, m)) * 0.16;
   if (uComic > 0.5) c = c * 0.55 + vec3(0.0, 0.004, 0.022);
   float l = dot(c, vec3(0.3, 0.59, 0.11));
@@ -216,7 +218,7 @@ export class Hintergrund {
   constructor(szene) {
     this.gruppe = new THREE.Group();
     szene.add(this.gruppe);
-    this.u = { uZeit: { value: 0 }, uComic: { value: 0 }, uSaett: { value: 1 }, uOktaven: { value: 5 }, uSonne: { value: SONNE.clone() },
+    this.u = { uZeit: { value: 0 }, uComic: { value: 0 }, uSaett: { value: 1 }, uStaerke: { value: 1 }, uOktaven: { value: 5 }, uSonne: { value: SONNE.clone() },
       uNetz: { value: 1 }, uPixel: { value: 1 }, uHyper: { value: 0 },
       uNebel: { value: STANDARD_NEBEL.map((c) => new THREE.Color().setRGB(...c)) }, uLicht: { value: new THREE.Color().setRGB(...STANDARD_LICHT) } };
 
@@ -283,7 +285,12 @@ export class Hintergrund {
 
   setzeTheme(h = {}) {
     const nebel = Array.isArray(h.nebel) && h.nebel.length === 3 ? h.nebel : null;
-    this.u.uNebel.value.forEach((c, i) => (nebel ? ausHex(nebel[i], c) : c.setRGB(...STANDARD_NEBEL[i])));
+    // Nebelfarben nur als Farbton nehmen (auf volle Helligkeit normiert); wie hell der Himmel wird, regelt staerke (0–2)
+    this.u.uNebel.value.forEach((c, i) => {
+      if (nebel) ausHex(nebel[i], c); else c.setRGB(...STANDARD_NEBEL[i]);
+      const max = Math.max(c.r, c.g, c.b); if (max > 0.001) c.multiplyScalar(1 / max);
+    });
+    const st = Number(h.staerke); this.u.uStaerke.value = Number.isFinite(st) ? Math.min(2, Math.max(0, st)) : 1;
     if (h.licht) ausHex(h.licht, this.u.uLicht.value); else this.u.uLicht.value.setRGB(...STANDARD_LICHT);
   }
 

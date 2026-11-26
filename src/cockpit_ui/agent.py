@@ -124,7 +124,7 @@ def szene_server(aufruf, namen=None):
                  "liefert JSON) | waehle (name) | speichere (theme: vollständiges oder teilweises Theme-Objekt, wird aktiv; "
                  "aktivieren=false nur ablegen) | loesche (name). Aufbau: {id, name, beschreibung, farben: {grund, flaeche, tief, "
                  "text, akzent, hinweis, nutzer, ok, warn}, verlauf: [3–9 #hex], schrift?, kugel: {toenung: #hex|null, "
-                 "toenung_staerke: 0–1, galaxie: [4 #hex innen→außen], schein}, hintergrund: {nebel: [3 dunkle #hex], licht, "
+                 "toenung_staerke: 0–1, galaxie: [4 #hex innen→außen], schein}, hintergrund: {nebel: [3 #hex, Farbton des Himmels, Helligkeit egal], staerke: 0–2 (Farbigkeit des Himmels, Standard 1), licht, "
                  "art: mond|raumer|null}, stil: leuchtend|comic|null, leuchten: 0.1–1.2}. Farben als #rrggbb, immer dunkles Theme.",
                  obj({"aktion": s, "name": s, "theme": {"type": ["object", "string"]}, "aktivieren": {"type": "boolean"}}, ["aktion"])),
         werkzeug("einstellung", "Schaltet einen Menüpunkt der Oberfläche. name: stimme | vorlesen | toene | untertitel | "

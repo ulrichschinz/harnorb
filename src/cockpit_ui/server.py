@@ -937,7 +937,7 @@ Hauptfarben ist schon aktiv (id {id}). Schau dir das Bild an und verbessere es: 
 Theme einen kurzen, treffenden Namen und eine Beschreibung in einem Satz, und speichere es mit theme (aktion speichere, \
 gleiche id {id}). Regeln: dunkles Theme (grund und tief sehr dunkel, text sehr hell, gut lesbar), akzent und verlauf aus den \
 prägenden Farben des Bildes, kugel.toenung im Hauptton (toenung_staerke 0.3 bis 0.7), galaxie vier Farben von innen \
-(hell) nach außen, hintergrund.nebel drei dunkle Töne, passt ein comic-artiges Bild, stil comic. Sag danach in einem Satz, \
+(hell) nach außen, hintergrund.nebel drei Farbtöne des Bildes (Helligkeit egal, staerke regelt die Farbigkeit), passt ein comic-artiges Bild, stil comic. Sag danach in einem Satz, \
 was du gemacht hast.
 Hauptfarben (häufigste zuerst): {palette}
 Aktuelles Theme: {theme}"""

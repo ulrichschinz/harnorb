@@ -14,7 +14,7 @@ Aufbau (alle Schlüssel freiwillig, Fehlendes kommt aus dem Standard-Theme „ha
      "verlauf": ["#hex", …],                     # 3 bis 9 Farben für die schillernden Ränder
      "schrift": "Avenir Next, sans-serif",       # optional
      "kugel": {"toenung": "#hex" | null, "toenung_staerke": 0..1, "galaxie": [4 × #hex], "schein": "#hex"},
-     "hintergrund": {"nebel": [3 × #hex], "licht": "#hex", "art": "mond" | "raumer" | null},
+     "hintergrund": {"nebel": [3 × #hex], "licht": "#hex", "art": "mond" | "raumer" | null, "staerke": 0–2},
      "stil": "leuchtend" | "comic" | null, "leuchten": 0.1..1.2}
 """
 import colorsys
@@ -141,7 +141,8 @@ def normiere(roh, basis=None):
     bh = b["hintergrund"]
     nebel = [f for f in (farbe(x) for x in (rh.get("nebel") or [])) if f] if isinstance(rh.get("nebel"), list) else []
     art = rh.get("art") if rh.get("art") in ("mond", "raumer") else None
-    t["hintergrund"] = {"nebel": nebel if len(nebel) == 3 else list(bh["nebel"]), "licht": farbe(rh.get("licht"), bh["licht"]), "art": art}
+    t["hintergrund"] = {"nebel": nebel if len(nebel) == 3 else list(bh["nebel"]), "licht": farbe(rh.get("licht"), bh["licht"]), "art": art,
+                        "staerke": _zahl(rh.get("staerke"), bh.get("staerke", 1.0), 0.0, 2.0)}
     t["stil"] = roh.get("stil") if roh.get("stil") in ("leuchtend", "comic") else None
     t["leuchten"] = _zahl(roh.get("leuchten"), b["leuchten"], 0.1, 1.2)
     if roh.get("quelle"):

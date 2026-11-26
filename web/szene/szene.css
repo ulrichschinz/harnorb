@@ -242,6 +242,7 @@ body[data-stil="comic"] .fokuskarte, body[data-stil="comic"] .tafel { background
   background: var(--tief); border: 1px solid rgba(255, 255, 255, .12); box-shadow: 0 30px 80px rgba(0, 0, 0, .6), 0 0 0 1px rgba(185, 166, 255, .08);
   opacity: 0; transform: translateY(16px) scale(.985); transition: opacity .35s ease, transform .35s ease; }
 .leser.da { opacity: 1; transform: none; }
+.leser[hidden] { display: none; }
 .leser-kopf { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px 8px 16px; border-bottom: 1px solid rgba(255, 255, 255, .08); font-size: 13px; }
 .leser-kopf b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .leser-kopf button { background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .14); border-radius: 8px; padding: 4px 10px; color: var(--text); font: inherit; cursor: pointer; }
