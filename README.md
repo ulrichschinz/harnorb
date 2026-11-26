@@ -93,7 +93,9 @@ HarnoRb zeigt Dateien des Cockpit-Ordners in einem großen Leser vor der Szene (
 
 Ein Theme legt Farben der Oberfläche, den schillernden Verlauf, Tönung und Kern der Kugel, Nebel und Lichter des Hintergrunds fest, als kleine JSON-Datei ohne Code (Aufbau im Kopf von `src/cockpit_ui/themes.py`). Eingebaut sind HarnoRb, Bernstein und Nordlicht. Wechseln mit Taste **C**, in der Konfiguration (Taste **K**) oder per Sprache („Theme Nordlicht“, „mach es wärmer“, „bau mir ein Theme in Herbstfarben“).
 
-**Theme aus einem Bild:** Bild oder Screenshot in die Szene ziehen, einfügen (Cmd+V) oder in der Konfiguration „Aus Bild …“ wählen. Der Browser holt die Hauptfarben (k-means, nichts verlässt den Rechner außer an Claude), der Server baut daraus sofort ein Theme, und Claude sieht sich danach das Bild an und verfeinert Name, Stimmung und Farben über das Werkzeug `theme`. Eigene Themes liegen in `~/.config/cockpit-ui/themes/` (anderer Ordner über `COCKPIT_UI_THEMES`). Module übernehmen das Theme von selbst, wenn sie die CSS-Variablen des Kerns nutzen (siehe [Module schreiben](docs/module-schreiben.md)).
+**Dateien hochladen:** Jede Datei (Bild, PDF, Tabelle, Markdown …) in die Szene ziehen oder einfügen (Cmd+V). Sie landet im Eingang des Cockpits (`eingang` in der Konfiguration, Standard `inbox/`), höchstens 20 MB, mit einer Eingangskarte daneben. Was damit geschieht, sagt man danach („fass das zusammen“, „mach daraus ein Theme“); Claude kennt die letzten Uploads aus dem Szenen-Kontext.
+
+**Theme aus einem Bild:** in der Konfiguration „Aus Bild …“ wählen oder ein hochgeladenes Bild nennen. Der Browser holt die Hauptfarben (k-means, nichts verlässt den Rechner außer an Claude), der Server baut daraus sofort ein Theme, und Claude sieht sich danach das Bild an und verfeinert Name, Stimmung und Farben über das Werkzeug `theme`. Eigene Themes liegen in `~/.config/cockpit-ui/themes/` (anderer Ordner über `COCKPIT_UI_THEMES`). Module übernehmen das Theme von selbst, wenn sie die CSS-Variablen des Kerns nutzen (siehe [Module schreiben](docs/module-schreiben.md)).
 
 ## Stimmendienste (eigene TTS-Server im Netz)
 
