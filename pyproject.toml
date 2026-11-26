@@ -1,0 +1,28 @@
+[project]
+name = "harnorb"
+version = "0.1.0"
+description = "HarnoRb: lokale Sprach-Oberfläche für Claude Code mit 3D-Szene und Modulen"
+license = "MIT"
+readme = "README.md"
+authors = [{ name = "Ulrich Schinz" }]
+requires-python = ">=3.12"
+dependencies = [
+    "claude-agent-sdk>=0.2.189",
+    "elevenlabs>=2.80.0",
+    "fastapi>=0.165.0",
+    "faster-whisper>=1.2.1",
+    "piper-tts>=1.8.0",
+    "python-multipart>=0.0.34",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[project.scripts]
+harnorb = "cockpit_ui:main"
+cockpit-ui = "cockpit_ui:main"
+
+[build-system]
+requires = ["uv_build>=0.13.5,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "cockpit_ui"

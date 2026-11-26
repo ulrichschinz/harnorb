@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="/static/logo/favicon.ico" sizes="any"><link rel="icon" type="image/png" href="/static/logo/harnorb-32.png"><link rel="apple-touch-icon" href="/static/logo/apple-touch-icon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HarnoRb</title>
+<link rel="stylesheet" href="/static/szene/szene.css?v=1">
+<script type="importmap">{"imports": {"three": "/static/vendor/three-0.170.0/build/three.module.min.js", "three/addons/": "/static/vendor/three-0.170.0/addons/"}}</script>
+<link rel="modulepreload" href="/static/vendor/three-0.170.0/build/three.module.min.js">
+</head>
+<body data-zustand="ruhe">
+<div id="buehne"></div>
+
+<div class="ecke oben-rechts">
+  <span class="punkt laedt" id="punkt" title="Verbinde …"></span>
+</div>
+<button class="hilfe-knopf" id="hilfe-knopf" title="Tasten (H)">?</button>
+
+<button class="knopf" id="knopf" aria-label="Sprechen: gedrückt halten oder Leertaste halten">
+  <span class="ring"></span><span class="ring zwei"></span>
+  <svg class="mikro" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Zm6-3.5a.9.9 0 1 0-1.8 0 4.2 4.2 0 0 1-8.4 0 .9.9 0 1 0-1.8 0 6 6 0 0 0 5.1 5.93V19H8.6a.9.9 0 1 0 0 1.8h6.8a.9.9 0 1 0 0-1.8h-2.5v-2.07A6 6 0 0 0 18 11Z"/></svg>
+</button>
+<div class="knopf-text" id="knopf-text">Leertaste halten</div>
+
+<div class="untertitel" id="untertitel" hidden><div class="ut-uli" id="ut-uli"></div><div class="ut-claude" id="ut-claude"></div></div>
+
+<article class="tafel" id="tafel" hidden>
+  <h2 class="t-titel"></h2>
+  <div class="t-inhalt"></div>
+  <div class="t-fuss"><kbd>X</kbd> oder „weg damit“ blendet aus</div>
+</article>
+
+<section class="erlaubnis" id="erlaubnis" hidden role="alertdialog" aria-labelledby="erl-titel">
+  <div class="erl-kopf"><span class="erl-auge"></span><h3 id="erl-titel">HarnoRb möchte ein Werkzeug benutzen</h3><span id="erl-mehr"></span></div>
+  <p class="erl-werkzeug" id="erl-werkzeug"></p>
+  <pre id="erl-eingabe"></pre>
+  <div class="erl-knoepfe">
+    <button id="erl-nein">Ablehnen <kbd>N</kbd></button>
+    <button id="erl-ja" class="haupt">Erlauben <kbd>J</kbd></button>
+  </div>
+  <p class="erl-stimme">Oder sag „ja“ bzw. „nein“ (Leertaste halten).</p>
+</section>
+
+<aside class="diagnose" id="diagnose" aria-label="Diagnose">
+  <div class="d-kopf"><b>Diagnose</b><span><a href="/klassisch">klassische Oberfläche</a> <button id="d-zu" title="D">×</button></span></div>
+  <div class="d-status" id="d-status"></div>
+  <div class="d-steuer">
+    <label><input type="checkbox" id="d-vorlesen" checked> Vorlesen</label>
+    <select id="d-vorleser" title="Stimme"><option value="piper">Lokal (Piper)</option></select>
+    <label><input type="checkbox" id="d-toene"> Effekttöne</label>
+    <select id="d-stufe" title="Qualität"><option value="auto">Qualität auto</option><option value="hoch">hoch</option><option value="mittel">mittel</option><option value="niedrig">niedrig</option></select>
+    <button id="d-neu">Neues Gespräch</button>
+  </div>
+  <div class="d-verlauf" id="d-verlauf"></div>
+  <form id="d-form" class="d-form"><input id="d-text" placeholder="Tippen statt sprechen …" autocomplete="off"><button>Senden</button></form>
+</aside>
+
+<section class="leser" id="leser" hidden aria-label="Leser">
+  <div class="leser-kopf"><b id="leser-titel">Cockpit</b>
+    <span><button id="leser-dateien" title="Dateibaum (L)">Dateien</button> <button id="leser-zu" title="Schließen (Esc)">×</button></span></div>
+  <iframe id="leser-rahmen" title="Cockpit-Leser"></iframe>
+</section>
+
+<aside class="diagnose konfig" id="konfig" aria-label="Konfiguration">
+  <div class="d-kopf"><b>Konfiguration</b><span><button id="k-zu" title="K">×</button></span></div>
+  <section class="k-teil">
+    <h4>Stimme</h4>
+    <div class="d-steuer">
+      <select id="k-stimme" title="Stimme"></select>
+      <button id="k-probe" type="button">Probe hören</button>
+    </div>
+    <p class="k-hinweis" id="k-stimme-info"></p>
+  </section>
+  <section class="k-teil">
+    <h4>Stimmendienste <small>(eigene TTS-Server, Protokoll http-tts)</small></h4>
+    <div id="k-dienste" class="k-dienste"></div>
+    <form id="k-neu" class="k-neu">
+      <input name="name" placeholder="Name, z. B. pc" autocomplete="off" required>
+      <input name="url" placeholder="http://192.168.1.50:8470" autocomplete="off" required>
+      <input name="token" placeholder="Token (optional, z. B. env:STIMMDIENST_TOKEN)" autocomplete="off">
+      <button>Anbinden</button>
+    </form>
+  </section>
+  <p class="k-hinweis">Alles geht auch per Sprache: „Stimme Lena“, „Konfiguration schließen“, „binde den Stimmendienst pc unter … an“, „entferne den Dienst pc“. Taste <kbd>K</kbd>.</p>
+</aside>
+
+<form class="eingabe" id="eingabe" hidden><input placeholder="Schreib HarnoRb etwas … (Enter senden, Esc schließen)" autocomplete="off"></form>
+
+<div class="hilfe" id="hilfe" hidden>
+  <div class="hilfe-karte">
+    <h3>HarnoRb bedienen</h3>
+    <dl>
+      <dt><kbd>Leertaste</kbd> halten</dt><dd>sprechen (oder den Ring unten halten; kurz tippen = freihändig)</dd>
+      <dt><kbd>Esc</kbd></dt><dd>Stopp: Vorlesen und Antwort anhalten</dd>
+      <dt><kbd>A</kbd> <kbd>O</kbd> <kbd>I</kbd> <kbd>W</kbd> <kbd>P</kbd> <kbd>N</kbd></dt><dd>Heute · Überfällig · Inbox · Warten · Projekte · Nächste</dd>
+      <dt><kbd>1</kbd>–<kbd>9</kbd> <kbd>←</kbd><kbd>→</kbd></dt><dd>Karte wählen · <kbd>Enter</kbd> in den Fokus</dd>
+      <dt><kbd>E</kbd> <kbd>E</kbd></dt><dd>erledigt (zweimal zum Bestätigen)</dd>
+      <dt><kbd>X</kbd></dt><dd>alles ausblenden</dd>
+      <dt><kbd>T</kbd></dt><dd>tippen statt sprechen</dd>
+      <dt><kbd>G</kbd> <kbd>R</kbd></dt><dd>Tagesüberblick · Inbox klären (Abläufe mit HarnoRb)</dd>
+      <dt><kbd>L</kbd></dt><dd>Leser: Cockpit-Dateien ansehen (auch „zeig mir STATUS“, „mach mir eine Übersicht …“)</dd>
+      <dt><kbd>U</kbd> <kbd>D</kbd> <kbd>K</kbd></dt><dd>Untertitel · Diagnose · Konfiguration (Stimme, Stimmendienste)</dd>
+      <dt><kbd>S</kbd> <kbd>B</kbd></dt><dd>Stil leuchtend/Comic · Hintergrund Mond/Kugelraumer</dd>
+      <dt><kbd>Q</kbd> <kbd>M</kbd> <kbd>F</kbd></dt><dd>Qualität · Effekttöne · Vollbild</dd>
+      <dt>sagen</dt><dd>„Was kann ich sagen?“ zeigt alle Sprachbefehle, z. B. „Stimme Lily“, „Vorlesen aus“</dd>
+    </dl>
+    <p>Oder einfach sagen: „Zeig mir die Todos“, „die zweite“, „daran arbeite ich jetzt“, „erledigt“, „weg damit“.</p>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+<script type="module" src="/static/szene/main.js?v=1"></script>
+</body>
+</html>

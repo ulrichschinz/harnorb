@@ -1,0 +1,37 @@
+# Konfiguration je Rechner für cockpit-ui. Kopieren nach ~/.config/cockpit-ui/config.toml
+# (oder Pfad in COCKPIT_UI_KONFIG). Gehört nicht ins Repo. Secrets nur als Verweis:
+#   "env:NAME"          aus der Umgebung (oder der .env im Repo)
+#   "env:NAME|Standard" mit Standardwert
+#   "keychain:DIENST"   aus dem macOS-Schlüsselbund
+# Fehlt die Datei, läuft nur der Kern (Sprache, Szene, Agent), ohne Aufgaben.
+
+person = "Alex"                    # Anrede in der Systemanweisung (leer: „der Nutzer“)
+# cockpit = "~/cockpit"            # Cockpit-Ordner; COCKPIT_DIR in der Umgebung geht vor
+namen = ["Musterfirma", "Kim"]     # Eigennamen für die Spracherkennung
+module_pfade = ["~/.config/cockpit-ui/module"]   # eigene Module (Ordner mit __init__.py oder name.py)
+# aufgaben = "taskwarrior"           # welches Modul die Aufgaben liefert, wenn es mehrere gibt
+
+# Aufgaben aus einem lokalen Taskwarrior
+[module.taskwarrior]
+# taskrc = "~/.taskrc"
+# daten = "~/.task"
+# prompt = "…"                     # ersetzt den Hinweis an den Agenten
+
+# Oder zum Ausprobieren: erfundene Aufgaben im Speicher
+# [module.beispiel]
+
+# Ein eigenes Modul aus module_pfade, z. B. ~/.config/cockpit-ui/module/meinsystem.py
+# [module.meinsystem]
+# url = "https://…"
+# key = "env:MEINSYSTEM_KEY"
+
+# Reine MCP-Anbindung (den Server selbst lädt Claude Code aus seiner Konfiguration)
+# [module.ontology]
+# typ = "mcp"
+# titel = "Ontology"
+# prompt = "Für Firmenwissen („was wissen wir über …“) gibt es die Ontology."
+# erlaubt = ["mcp__ontology__ask"]   # ohne Rückfrage; nur lesende Werkzeuge eintragen
+
+# Ein Modul abschalten, ohne es zu löschen:
+# [module.alt]
+# aus = true

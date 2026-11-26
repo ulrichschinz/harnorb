@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="/static/logo/favicon.ico" sizes="any"><link rel="icon" type="image/png" href="/static/logo/harnorb-32.png"><link rel="apple-touch-icon" href="/static/logo/apple-touch-icon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cockpit</title>
+<link rel="stylesheet" href="/static/app.css?v=3">
+</head>
+<body>
+<header class="kopf">
+  <div class="marke">Cockpit <span id="datum"></span></div>
+  <nav class="zahlen" id="zahlen"></nav>
+  <div class="schalter">
+    <button id="fokusmodus" title="Nur Fokus und Gespräch (F)">Fokusmodus</button>
+    <span class="punkt" id="punkt-sprache" title="Sprache"></span>
+    <span class="punkt" id="punkt-aufgaben" title="Aufgaben"></span>
+  </div>
+</header>
+
+<main class="raster">
+  <aside class="ueberblick" id="ueberblick">
+    <div class="reiter" id="reiter">
+      <button data-liste="heute" class="an">Heute</button>
+      <button data-liste="naechste">Nächste</button>
+      <button data-liste="inbox">Inbox</button>
+      <button data-liste="warten">Warten</button>
+      <button data-liste="projekte">Projekte</button>
+    </div>
+    <input id="filter" placeholder="Filtern …" autocomplete="off">
+    <ul class="liste" id="liste"></ul>
+  </aside>
+
+  <section class="fokus" id="fokus">
+    <div class="leer" id="fokus-leer">
+      <p>Keine Aufgabe im Fokus.</p>
+      <p class="leise">Wähle links eine Aufgabe oder frag: „Was soll ich als Nächstes tun?“</p>
+    </div>
+    <article id="fokus-karte" hidden>
+      <div class="meta" id="fokus-meta"></div>
+      <h1 id="fokus-titel"></h1>
+      <div class="knoepfe">
+        <button id="b-erledigt" class="haupt">Erledigt</button>
+        <button id="b-start">Starten</button>
+        <button id="b-besprechen">Mit Claude besprechen</button>
+        <button id="b-loesen" class="leise">Fokus lösen</button>
+      </div>
+      <h2>Notizen</h2>
+      <ul class="notizen" id="fokus-notizen"></ul>
+      <form id="notiz-form" class="zeile">
+        <input id="notiz" placeholder="Notiz an die Aufgabe hängen …" autocomplete="off">
+        <button>Anhängen</button>
+      </form>
+    </article>
+  </section>
+
+  <section class="gespraech">
+    <div class="ablaeufe">
+      <button data-prompt="Gib mir den Tagesüberblick.">Tagesüberblick</button>
+      <button data-prompt="Lass uns die Inbox klären, Eintrag für Eintrag.">Inbox klären</button>
+      <button data-prompt="Was soll ich als Nächstes tun? Schlag mir eine einzige Aufgabe vor.">Was als Nächstes?</button>
+      <button data-prompt="Schließ die Session ab.">Abschluss</button>
+    </div>
+    <div class="verlauf" id="verlauf"></div>
+    <div class="steuer">
+      <button id="mikro" class="mikro" title="Halten oder Leertaste halten">
+        <span class="welle"></span><span id="mikro-text">Halten zum Sprechen</span>
+      </button>
+      <div class="zeile klein">
+        <label><input type="checkbox" id="vorlesen" checked> Vorlesen</label>
+        <select id="vorleser" title="Stimme zum Vorlesen">
+          <option value="piper">Lokal (Piper)</option>
+        </select>
+        <button id="stopp" title="Esc">Stopp</button>
+        <button id="neu" title="Neues Gespräch">Neu</button>
+      </div>
+      <form id="text-form" class="zeile">
+        <input id="text" placeholder="Oder tippen …" autocomplete="off">
+        <button>Senden</button>
+      </form>
+    </div>
+  </section>
+</main>
+
+<dialog id="erlaubnis">
+  <form method="dialog">
+    <h3>Claude möchte ein Werkzeug benutzen</h3>
+    <p><strong id="erl-werkzeug"></strong></p>
+    <pre id="erl-eingabe"></pre>
+    <div class="zeile">
+      <button value="nein">Ablehnen</button>
+      <button value="ja" class="haupt">Erlauben</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="/static/app.js?v=3"></script>
+</body>
+</html>

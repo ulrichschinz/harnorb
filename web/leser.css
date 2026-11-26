@@ -1,0 +1,56 @@
+/* Cockpit-Leser: ruhige, gut lesbare Fläche im Ton von HarnoRb (dunkel, warm). */
+:root {
+  --grund: #0b0d16; --flaeche: #121524; --linie: rgba(255, 255, 255, .09); --text: #e9e6f2; --leise: #9a97ad;
+  --akzent: #ffb38a; --akzent2: #b9a6ff; --code: #181b2d; --ok: #7be0b0; --warn: #ff8f7a;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--grund); color: var(--text); font: 16px/1.65 "Inter", system-ui, -apple-system, sans-serif; }
+.kopf { position: sticky; top: 0; z-index: 2; display: flex; gap: 12px; align-items: center; padding: 10px 20px; background: rgba(11, 13, 22, .92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--linie); }
+.pfad { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; gap: 2px; font-size: 13px; color: var(--leise); }
+.pfad a { color: var(--leise); text-decoration: none; padding: 2px 4px; border-radius: 6px; }
+.pfad a:hover { color: var(--text); background: rgba(255, 255, 255, .06); }
+.pfad a:last-child { color: var(--text); font-weight: 600; }
+.pfad span { opacity: .5; }
+.suche input { width: min(260px, 40vw); background: rgba(255, 255, 255, .06); border: 1px solid var(--linie); border-radius: 9px; padding: 6px 10px; color: var(--text); font: inherit; font-size: 13px; }
+.knopf { font-size: 13px; color: var(--leise); border: 1px solid var(--linie); border-radius: 9px; padding: 5px 10px; text-decoration: none; }
+.knopf:hover { color: var(--text); }
+.inhalt { max-width: 920px; margin: 0 auto; padding: 28px 28px 120px; outline: none; }
+.inhalt.breit { max-width: none; padding: 0; height: calc(100vh - 53px); }
+.inhalt.breit iframe, .inhalt.breit embed { width: 100%; height: 100%; border: 0; display: block; background: #fff; }
+.inhalt.breit iframe.seite { background: var(--grund); }
+
+/* Ordner und Suche */
+.liste { display: flex; flex-direction: column; gap: 2px; }
+.liste a { display: grid; grid-template-columns: 26px 1fr auto; gap: 10px; align-items: center; padding: 8px 12px; border-radius: 10px; color: var(--text); text-decoration: none; }
+.liste a:hover, .liste a:focus { background: rgba(255, 255, 255, .06); outline: none; }
+.liste .sym { text-align: center; opacity: .8; }
+.liste .neben { color: var(--leise); font-size: 12px; }
+.liste .unter { grid-column: 2 / -1; color: var(--leise); font-size: 12px; margin-top: -6px; }
+.leer { color: var(--leise); }
+
+/* Dokument */
+.meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+.meta span { font-size: 11.5px; letter-spacing: .04em; color: var(--leise); border: 1px solid var(--linie); border-radius: 999px; padding: 2px 9px; }
+.meta span.confidential, .meta span.pii { color: var(--warn); border-color: rgba(255, 143, 122, .4); }
+.doc h1 { font-size: 30px; line-height: 1.25; margin: 0 0 18px; letter-spacing: -.01em; }
+.doc h2 { font-size: 22px; margin: 36px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--linie); }
+.doc h3 { font-size: 18px; margin: 26px 0 8px; }
+.doc a { color: var(--akzent); }
+.doc code { background: var(--code); border-radius: 5px; padding: 1px 5px; font: 13.5px ui-monospace, Menlo, monospace; }
+.doc pre { background: var(--code); border: 1px solid var(--linie); border-radius: 10px; padding: 14px 16px; overflow: auto; }
+.doc pre code { background: none; padding: 0; }
+.doc blockquote { margin: 16px 0; padding: 4px 16px; border-left: 3px solid var(--akzent2); color: #cfcbe0; }
+.doc table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 14.5px; display: block; overflow-x: auto; }
+.doc th, .doc td { border-bottom: 1px solid var(--linie); padding: 7px 10px; text-align: left; vertical-align: top; }
+.doc th { color: var(--leise); font-weight: 600; font-size: 12.5px; letter-spacing: .04em; text-transform: uppercase; }
+.doc img { max-width: 100%; border-radius: 8px; }
+.doc hr { border: 0; border-top: 1px solid var(--linie); margin: 28px 0; }
+.doc li + li { margin-top: 3px; }
+.doc input[type=checkbox] { accent-color: var(--akzent); }
+.diagramm { margin: 20px 0; padding: 16px; background: var(--flaeche); border: 1px solid var(--linie); border-radius: 14px; overflow-x: auto; text-align: center; }
+.diagramm.chart { height: 360px; position: relative; }
+.diagramm .fehler { color: var(--warn); font-size: 13px; text-align: left; white-space: pre-wrap; }
+.textdatei { white-space: pre-wrap; word-break: break-word; font: 13.5px/1.6 ui-monospace, Menlo, monospace; }
+.bild { text-align: center; } .bild img { max-width: 100%; max-height: 80vh; }
+@media (max-width: 640px) { .inhalt { padding: 18px 16px 100px; } .suche input { width: 34vw; } }
