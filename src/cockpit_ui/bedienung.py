@@ -9,7 +9,7 @@ Erlaubnisanfragen gehören nicht hierher; dafür gibt es `erlaubnis_per_stimme` 
 """
 import re
 
-SCHALTER = ("vorlesen", "toene", "untertitel", "diagnose", "hilfe", "konfiguration")
+SCHALTER = ("vorlesen", "toene", "untertitel", "diagnose", "hilfe", "konfiguration", "freisprechen")
 STUFEN = ("auto", "hoch", "mittel", "niedrig")
 NAMEN = SCHALTER + ("qualitaet", "stimme")
 
@@ -17,7 +17,8 @@ ALIAS = {
     "töne": "toene", "effekttöne": "toene", "effekttoene": "toene", "effekte": "toene", "ton": "toene",
     "sprachausgabe": "vorlesen", "qualität": "qualitaet", "grafik": "qualitaet", "stufe": "qualitaet",
     "vorleser": "stimme", "sprecherin": "stimme", "sprecher": "stimme", "befehle": "hilfe", "tasten": "hilfe",
-    "konfig": "konfiguration", "config": "konfiguration", "einstellungen": "konfiguration", "stimmendienste": "konfiguration",
+    "konfig": "konfiguration", "freisprechmodus": "freisprechen", "freihändig": "freisprechen",
+    "handsfree": "freisprechen", "dauerzuhören": "freisprechen", "config": "konfiguration", "einstellungen": "konfiguration", "stimmendienste": "konfiguration",
 }
 AN = {"an", "ein", "true", "1", "ja", "on", "einschalten", "anschalten", "anmachen", "zeigen", "auf", "öffnen"}
 AUS = {"aus", "ab", "false", "0", "nein", "off", "ausschalten", "abschalten", "ausmachen", "ausblenden", "zu",
@@ -92,7 +93,7 @@ BEFEHLE = """\
 **Karten:** „die zweite“, „daran arbeite ich“, „erledigt“, „weg damit“
 **Stimme:** „Stimme Lena“, „Stimme lokal“, „welche Stimmen gibt es“, „Konfiguration öffnen“
 **Stimmendienste:** „binde den Stimmendienst pc unter 192.168.1.50 Port 8470 an“, „entferne Dienst pc“ (macht HarnoRb)
-**Schalter:** „Vorlesen aus“, „Töne an“, „Untertitel an“, „Diagnose an“, „Hilfe“
+**Schalter:** „Vorlesen aus“, „Töne an“, „Untertitel an“, „Freisprechen an“, „Diagnose an“, „Hilfe“
 **Aussehen:** „Stil Comic“, „Stil leuchtend“, „Hintergrund Raumer“, „Hintergrund Mond“, „Qualität niedrig“
 **Gespräch:** „Stopp“, „neues Gespräch“, „ja“ oder „nein“ bei einer Erlaubnisfrage
 

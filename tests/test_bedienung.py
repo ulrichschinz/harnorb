@@ -18,6 +18,8 @@ KURZ = ["sarah", "lily", "george"]
     ("Mach das Vorlesen an", ("einstellung", {"name": "vorlesen", "wert": True})),
     ("Schalte die Töne an", ("einstellung", {"name": "toene", "wert": True})),
     ("Untertitel an", ("einstellung", {"name": "untertitel", "wert": True})),
+    ("Freisprechen an", ("einstellung", {"name": "freisprechen", "wert": True})),
+    ("Schalte das Freisprechen aus", ("einstellung", {"name": "freisprechen", "wert": False})),
     ("Diagnose ausblenden", ("einstellung", {"name": "diagnose", "wert": False})),
     ("Qualität auf niedrig", ("einstellung", {"name": "qualitaet", "wert": "niedrig"})),
     ("Stil Comic", ("stil", {"stil": "comic"})),

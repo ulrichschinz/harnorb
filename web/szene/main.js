@@ -7,6 +7,7 @@ import { Effekte } from "./effekte.js";
 import { Karten } from "./karten.js";
 import { Automat, ZUSTAENDE } from "./zustand.js";
 import { Gespraech, api } from "./gespraech.js";
+import { Freisprechen } from "./freisprechen.js";
 import { naeher, warte } from "./tween.js";
 import { ladeModule, geladen as modulWeb, kartenArten, effekte } from "./erweiterungen.js";
 
@@ -69,7 +70,7 @@ const FARBEN = { ruhe: "#9db8ff", zuhoeren: "#ff7a59", denken: "#c38bff", sprech
 let pegelGlatt = 0;
 buehne.jedesBild((dt, zeit) => {
   const p = automat.update(dt);
-  const roh = automat.name === "zuhoeren" ? g.micPegel() : automat.name === "sprechen" ? g.pegel() : (VORSCHAU && automat.vorschau === "sprechen" ? demoPegel(zeit) : 0);
+  const roh = automat.name === "zuhoeren" ? Math.max(g.micPegel(), frei.pegel()) : automat.name === "sprechen" ? g.pegel() : (VORSCHAU && automat.vorschau === "sprechen" ? demoPegel(zeit) : 0);
   // Pegel geglättet: Anstieg ca. 90 ms, Abfall ca. 140 ms, damit die Kugel atmet statt zu zittern
   const pz = roh * p.pegel;
   pegelGlatt = naeher(pegelGlatt, pz, pz > pegelGlatt ? 11 : 7, dt);
@@ -122,7 +123,7 @@ const g = new Gespraech({
   },
   fluechtig: (m) => {
     switch (m.typ) {
-      case "erkannt": automat.setze("erkennt", false); diagZeile("erkannt", m.text ? `„${m.text}“ (${m.sekunden} s)` : "nichts verstanden"); if (!m.text) toast("Nichts verstanden."); break;
+      case "erkannt": automat.setze("erkennt", false); diagZeile("erkannt", m.text ? `„${m.text}“ (${m.sekunden} s)` : "nichts verstanden"); if (!m.text && !frei.an) toast("Nichts verstanden."); break;
       case "fehler": fehler(m.text); break;
       case "erlaubnis": anfragen.push(m); zeigeErlaubnisse(); break;
       case "erlaubnis_erledigt": { const i = anfragen.findIndex((a) => a.id === m.id); if (i >= 0) anfragen.splice(i, 1); zeigeErlaubnisse(); break; }
@@ -138,6 +139,35 @@ const g = new Gespraech({
   aufnahme: (an) => { automat.setze("aufnahme", an); knopf.classList.toggle("an", an); if (!an && g.erkennt) automat.setze("erkennt", true); zeigeKnopfText(); },
   brauchtGeste: () => toast("Zum Vorlesen einmal klicken oder die Leertaste drücken."),
 });
+
+// ---------- Freisprechen (V) ----------
+// Mikrofon bleibt offen, Pausen beenden eine Äußerung. Taub, solange HarnoRb spricht oder die Sprechtaste läuft.
+const frei = new Freisprechen(g, {
+  darf: () => !g.nimmtAuf,
+  melde: (was, text) => {
+    if (was === "an") { automat.setze("aufnahme", true); knopf.classList.add("an"); }
+    if (was === "aus") { automat.setze("aufnahme", false); knopf.classList.remove("an"); }
+    if (was === "gesendet") automat.setze("erkennt", true);
+    if (was === "fehler") fehler(text);
+    zeigeKnopfText();
+  },
+});
+let freiGewuenscht = lies("harno-freisprechen", "aus") === "an";
+async function setzeFreisprechen(an, { leise = false } = {}) {
+  freiGewuenscht = an; merke("harno-freisprechen", an ? "an" : "aus");
+  $("#d-frei").checked = an;
+  if (!an) { frei.stoppe(); if (!leise) toast("Freisprechen aus. Leertaste halten zum Sprechen."); zeigeKnopfText(); return; }
+  try {
+    await frei.starte();
+    if (!leise) toast("Freisprechen an. Sprich einfach, nach einer kurzen Pause antworte ich.");
+  } catch (e) {
+    freiGewuenscht = false; merke("harno-freisprechen", "aus"); $("#d-frei").checked = false;
+    fehler("Freisprechen geht nicht: " + e.message);
+  }
+  zeigeKnopfText();
+}
+// War Freisprechen beim letzten Mal an, beim ersten Klick oder Tastendruck wieder starten (Audio braucht eine Geste)
+if (freiGewuenscht) for (const ev of ["pointerdown", "keydown"]) addEventListener(ev, () => { if (freiGewuenscht && !frei.an) setzeFreisprechen(true, { leise: true }); }, { once: true });
 
 function frage(text) {
   if (!g.frage(text)) { toast("Keine Verbindung zum Server."); return false; }
@@ -258,7 +288,8 @@ const knopf = $("#knopf");
 let tippModus = false, druckBeginn = 0;
 function zeigeKnopfText() {
   $("#knopf-text").textContent = g.nimmtAuf ? (tippModus ? "Ich höre … (tippen zum Senden)" : "Ich höre …")
-    : automat.e.erkennt ? "Verstehe …" : "Leertaste halten";
+    : frei.hoert ? "Ich höre …" : automat.e.erkennt ? "Verstehe …"
+    : frei.an ? "Freisprechen: sprich einfach" : freiGewuenscht ? "Klicken für Freisprechen" : "Leertaste halten";
 }
 // Audio beim ersten Kontakt vorwärmen (AudioContext und Effekttöne), damit der Mikrofonstart nicht ruckelt
 for (const ev of ["pointerdown", "keydown"]) addEventListener(ev, () => { try { g.audio(); fx.ton._ctx?.(); } catch (_) { /* egal */ } }, { once: true, capture: true });
@@ -300,6 +331,7 @@ document.addEventListener("keydown", (e) => {
   if (e.repeat) return;
   if (e.key === "Escape") { if (!$("#hilfe").hidden) return zeigeHilfe(false); if (leserOffen) return schliesseLeser(); g.stoppe(); toast("Gestoppt."); return; }
   if (k === "u") return schalteUntertitel();
+  if (k === "v") return setzeFreisprechen(!freiGewuenscht);
   if (k === "d") return schalteDiagnose();
   if (k === "k") return schalteKonfig();
   if (k === "l") return leserOffen ? schliesseLeser() : oeffneLeser("");
@@ -409,6 +441,8 @@ function zeigeDiagStatus() {
 $("#d-vorlesen").checked = lies("harno-vorlesen", "an") !== "aus";
 g.vorlesen = $("#d-vorlesen").checked;
 $("#d-vorlesen").onchange = (e) => { g.vorlesen = e.target.checked; merke("harno-vorlesen", g.vorlesen ? "an" : "aus"); if (!g.vorlesen) g.stummschalten(); };
+$("#d-frei").checked = freiGewuenscht;
+$("#d-frei").onchange = (e) => setzeFreisprechen(e.target.checked);
 $("#d-toene").checked = fx.ton.an;
 $("#d-toene").onchange = (e) => fx.ton.setze(e.target.checked);
 $("#d-stufe").value = lies("harno-stufe", "auto");
@@ -522,6 +556,7 @@ function wendeEinstellung(name, wert) {
     case "toene": haken("#d-toene", !!wert); break;
     case "qualitaet": { const el = $("#d-stufe"); el.value = wert; el.dispatchEvent(new Event("change")); break; }
     case "untertitel": if (untertitelAn !== !!wert) schalteUntertitel(); break;
+    case "freisprechen": if (freiGewuenscht !== !!wert || frei.an !== !!wert) setzeFreisprechen(!!wert); break;
     case "diagnose": if (diagOffen !== !!wert) schalteDiagnose(); break;
     case "hilfe": zeigeHilfe(!!wert); break;
     case "konfiguration": schalteKonfig(!!wert); break;

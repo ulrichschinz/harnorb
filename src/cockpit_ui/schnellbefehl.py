@@ -75,7 +75,8 @@ ZEIG = r"^(zeig|zeige|zeigt|öffne|oeffne|was ist|was steht|was sind|wo ist|list
 # Menüpunkte: Ziel-Wort -> Name der Einstellung (siehe bedienung.py)
 ZIELE = {"vorlesen": "vorlesen", "sprachausgabe": "vorlesen", "töne": "toene", "effekttöne": "toene",
          "effekte": "toene", "untertitel": "untertitel", "diagnose": "diagnose",
-         "konfiguration": "konfiguration", "einstellungen": "konfiguration", "konfig": "konfiguration"}
+         "konfiguration": "konfiguration", "einstellungen": "konfiguration", "konfig": "konfiguration",
+         "freisprechen": "freisprechen", "freisprechmodus": "freisprechen"}
 AN_AUS = {"an": True, "ein": True, "einschalten": True, "anschalten": True, "anmachen": True, "zeigen": True,
           "öffnen": True, "oeffnen": True, "auf": True,
           "aus": False, "schließen": False, "schliessen": False, "zu": False, "ab": False, "ausschalten": False, "abschalten": False, "ausmachen": False, "ausblenden": False}

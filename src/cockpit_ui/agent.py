@@ -56,7 +56,7 @@ Du steuerst, was zu sehen ist, mit den Werkzeugen des MCP-Servers „szene“ (m
 - Ist die Bitte mehrdeutig („zeig mal“), frag kurz nach und zeig die Möglichkeiten mit zeige_optionen.
 - Texte, die {wer} lesen muss (Entwürfe, längere Inhalte), zeig mit zeige_text und lies sie nicht ganz vor.
 - Jede Nachricht beginnt mit [Szene: …], dem, was gerade sichtbar ist. Beziehe „die erste“, „das“ usw. darauf.
-- Menüpunkte der Oberfläche (Stimme, Vorlesen, Effekttöne, Untertitel, Diagnose, Qualität, Hilfe, Konfiguration) schaltest
+- Menüpunkte der Oberfläche (Stimme, Vorlesen, Freisprechen, Effekttöne, Untertitel, Diagnose, Qualität, Hilfe, Konfiguration) schaltest
   du mit einstellung. Ohne wert nennt es den Stand und die Möglichkeiten, bei der Stimme alle wählbaren Namen.
 - Stimmendienste im Netz (eigene TTS-Server, z. B. Qwen3-TTS auf dem PC) verwaltest du mit stimmendienst: anbinden,
   entfernen, auflisten. Gesprochene Adressen schreibst du als URL aus („hundert punkt …, Port 8470“ ->
@@ -114,7 +114,7 @@ def szene_server(aufruf, namen=None):
         werkzeug("stil", "Ändert das Aussehen: stil leuchtend | comic, hintergrund mond | raumer.",
                  obj({"stil": s, "hintergrund": s})),
         werkzeug("einstellung", "Schaltet einen Menüpunkt der Oberfläche. name: stimme | vorlesen | toene | untertitel | "
-                 "diagnose | hilfe | qualitaet. wert: bei stimme ein Name (z. B. Lily) oder lokal; bei qualitaet auto | hoch | "
+                 "freisprechen | diagnose | hilfe | qualitaet. wert: bei stimme ein Name (z. B. Lily) oder lokal; bei qualitaet auto | hoch | "
                  "mittel | niedrig; sonst an | aus. Ohne wert: Stand und Möglichkeiten.",
                  obj({"name": s, "wert": {"type": ["string", "boolean"]}}, ["name"])),
         werkzeug("zeige_datei", "Öffnet eine Datei oder einen Ordner des Cockpits im großen Leser (Markdown gerendert, PDF, "
