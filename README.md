@@ -148,3 +148,7 @@ uv run --with pytest --with httpx pytest -q
 ## Lizenz
 
 MIT, siehe [LICENSE](LICENSE). Die Bibliotheken unter `web/vendor/` (three.js 0.170.0, marked 12.0.2, DOMPurify 3.1.6, Mermaid 11.4.1, Chart.js 4.4.7) stehen unter ihren eigenen Lizenzen, jeweils als `LICENSE` daneben.
+
+## Hinweis
+
+HarnoRb ist ein unabhängiges Projekt, das lose von Science-Fiction inspiriert ist. Es steht in keiner offiziellen Verbindung zu Perry Rhodan oder zur Pabel-Moewig Verlag KG und wird von diesen weder unterstützt noch geprüft.
