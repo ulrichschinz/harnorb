@@ -9,7 +9,7 @@ import time
 import uuid as uuidlib
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -767,6 +767,9 @@ async def frage(text, quelle):
                     f"{' aus ' + QUELLE if QUELLE else ''} im Fokus.")
     if LESER["pfad"] is not None:
         kontext += f" Im Leser offen: {LESER['pfad'] or 'Dateibaum'} (Cockpit-Pfad)."
+    if HOCHGELADEN:
+        kontext += " Zuletzt hochgeladen (neueste zuerst): " + "; ".join(
+            f"{h['pfad']} ({h['name']}, {h['groesse'] // 1024 or 1} KB, {h['zeit']})" for h in HOCHGELADEN) + "."
     prompt = f"[Szene: {kontext}]\n\n{text}"
     await agent.sende(prompt, anzeige=text, quelle=quelle)
 
@@ -1021,6 +1024,30 @@ LESER_CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-in
 # Von Claude gebaute HTML-Seiten: abgeschottet (eigener Ursprung, kein Netz, keine Cookies), Skripte erlaubt.
 SEITEN_CSP = ("sandbox allow-scripts allow-popups; default-src 'self' 'unsafe-inline' data: blob:; "
               "script-src 'self' 'unsafe-inline'; connect-src 'none'; form-action 'none'")
+
+
+HOCHGELADEN = []   # zuletzt hochgeladene Dateien dieser Sitzung, neueste zuerst (höchstens 5)
+
+
+@app.post("/api/upload")
+async def hochladen(dateien_: list[UploadFile] = File(alias="datei")):
+    """Dateien aus der Szene (ziehen oder einfügen) im Eingang des Cockpits ablegen. Was damit geschieht,
+    sagt der Nutzer danach; der Szenen-Kontext nennt die letzten Uploads."""
+    abgelegt, fehler = [], []
+    for f in dateien_[:20]:
+        try:
+            daten = await f.read(dateien.MAX_UPLOAD + 1)
+            a = dateien.ablegen(COCKPIT, f.filename or "datei", daten, ordner=K.eingang)
+        except dateien.DateiFehler as e:
+            fehler.append(str(e))
+            continue
+        a["zeit"] = time.strftime("%H:%M")
+        abgelegt.append(a)
+        HOCHGELADEN.insert(0, a)
+    del HOCHGELADEN[5:]
+    if not abgelegt and fehler:
+        raise HTTPException(400, "; ".join(fehler))
+    return {"abgelegt": abgelegt, "fehler": fehler}
 
 
 @app.get("/leser")

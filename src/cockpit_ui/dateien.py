@@ -140,3 +140,52 @@ def erstelle(wurzel: Path, titel: str, inhalt: str, format="markdown", beschreib
         text = f"# {titel}\n\n{text}"
     (ordner / f"{name}.md").write_text(kopf + text + "\n")
     return f"knowledge/{name}.md"
+
+
+MAX_UPLOAD = 20 * 1024 * 1024   # größere Dateien gehören nicht ins Cockpit (kein Platz für Binärriesen im Repo)
+
+
+def _kopf_brief(titel, heute, extra=""):
+    t = titel.replace(chr(34), chr(39))
+    return (f'---\ntype: brief\ntitle: "{t}"\nstatus: open\ndate: {heute.isoformat()}\nfrom: harnorb\n'
+            f"tags: [upload]\ndata_class: internal\n---\n\n{extra}")
+
+
+def ablegen(wurzel: Path, name: str, daten: bytes, ordner="inbox", heute=None) -> dict:
+    """Hochgeladene Datei im Eingang ablegen: `<ordner>/YYYY-MM-DD-slug.endung`, nie überschreiben.
+    Markdown und Text ohne Frontmatter bekommen eine Eingangs-Frontmatter vorangestellt; jede andere Datei eine
+    Begleitkarte (`….md`) daneben, die auf sie verweist. -> {"pfad", "karte", "name", "art", "groesse"}"""
+    name = Path(str(name or "")).name.strip() or "datei"
+    if len(daten) > MAX_UPLOAD:
+        raise DateiFehler(f"{name} ist größer als {MAX_UPLOAD // (1024 * 1024)} MB.")
+    if not daten:
+        raise DateiFehler(f"{name} ist leer.")
+    endung = Path(name).suffix.lower()
+    if GESPERRT.search(name) or not re.fullmatch(r"(\.[a-z0-9]{1,8})?", endung):
+        raise DateiFehler(f"{name}: Dateiname oder Endung nicht erlaubt.")
+    heute = heute or dt.date.today()
+    ziel = wurzel / ordner
+    if ziel.resolve() != wurzel.resolve() and wurzel.resolve() not in ziel.resolve().parents:
+        raise DateiFehler("Der Eingangsordner liegt außerhalb des Cockpits.")
+    ziel.mkdir(parents=True, exist_ok=True)
+    basis = f"{heute.isoformat()}-{slug(Path(name).stem)}"
+    stamm, i = basis, 2
+    while (ziel / f"{stamm}{endung}").exists() or (ziel / f"{stamm}.md").exists():
+        stamm, i = f"{basis}-{i}", i + 1
+    datei = ziel / f"{stamm}{endung}"
+    titel = f"Hochgeladen: {name}"
+    karte = None
+    if endung in (".md", ".txt"):
+        text = daten.decode("utf-8", errors="replace")
+        if not text.startswith("---\n"):
+            text = _kopf_brief(titel, heute) + text
+        datei.write_text(text)
+    else:
+        datei.write_bytes(daten)
+        karte = ziel / f"{stamm}.md"
+        karte.write_text(_kopf_brief(titel, heute, f"# {titel}\n\nIn HarnoRb hochgeladen am {heute:%d.%m.%Y}: "
+                                     f"[{datei.name}]({datei.name}) ({len(daten) // 1024 or 1} KB). Noch nicht "
+                                     "verarbeitet: an den richtigen Ort überführen, dann `status: done`.\n"))
+    rel = lambda p: p.relative_to(wurzel.resolve()).as_posix()
+    return {"pfad": rel(datei.resolve()), "karte": rel(karte.resolve()) if karte else None, "name": name,
+            "art": art_von(datei), "groesse": len(daten)}

@@ -47,6 +47,7 @@ class Konfig:
     module_pfade: list = field(default_factory=list)
     module: dict = field(default_factory=dict)     # name -> Einstellungen (aufgelöst)
     aufgaben: str = ""                             # welches Modul die Aufgaben liefert (leer: das erste)
+    eingang: str = "inbox"                         # Cockpit-Ordner für hochgeladene Dateien
     fehler: list = field(default_factory=list)
 
 
@@ -68,5 +69,6 @@ def lade(pfad=None):
     k.namen = [str(n) for n in roh.get("namen") or []]
     k.module_pfade = [Path(str(p)).expanduser() for p in roh.get("module_pfade") or []]
     k.aufgaben = str(roh.get("aufgaben") or "")
+    k.eingang = str(roh.get("eingang") or "inbox").strip("/") or "inbox"
     k.module = {name: aufloesen(dict(werte or {})) for name, werte in (roh.get("module") or {}).items()}
     return k

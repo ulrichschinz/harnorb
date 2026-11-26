@@ -51,3 +51,39 @@ def test_erstellen(cockpit):
     assert "(2026-11-26-systemuebersicht-harnorb-2.html)" in (cockpit / "knowledge/2026-11-26-systemuebersicht-harnorb-2.md").read_text()
     with pytest.raises(d.DateiFehler):
         d.erstelle(cockpit, "", "x")
+
+
+def test_ablegen(cockpit):
+    tag = dt.date(2026, 11, 26)
+    a = d.ablegen(cockpit, "Umsatz Q3.xlsx", b"PK\x03\x04daten", heute=tag)
+    assert a["pfad"] == "inbox/2026-11-26-umsatz-q3.xlsx" and a["karte"] == "inbox/2026-11-26-umsatz-q3.md"
+    karte = (cockpit / a["karte"]).read_text()
+    assert "type: brief" in karte and "status: open" in karte and "(2026-11-26-umsatz-q3.xlsx)" in karte
+    b = d.ablegen(cockpit, "umsatz q3.xlsx", b"x", heute=tag)          # nie überschreiben
+    assert b["pfad"] == "inbox/2026-11-26-umsatz-q3-2.xlsx"
+    m = d.ablegen(cockpit, "notiz.md", "# Hallo\n".encode(), heute=tag)
+    assert m["karte"] is None and (cockpit / m["pfad"]).read_text().startswith("---\ntype: brief")
+    fm = "---\ntype: note\ntitle: x\n---\n# X\n"
+    assert (cockpit / d.ablegen(cockpit, "fertig.md", fm.encode(), heute=tag)["pfad"]).read_text() == fm
+    assert d.ablegen(cockpit, "../../boese.pdf", b"%PDF", heute=tag)["pfad"] == "inbox/2026-11-26-boese.pdf"
+    for name, daten in ((".env", b"x"), ("leer.pdf", b""), ("gross.bin", b"x" * (d.MAX_UPLOAD + 1))):
+        with pytest.raises(d.DateiFehler):
+            d.ablegen(cockpit, name, daten, heute=tag)
+    with pytest.raises(d.DateiFehler):
+        d.ablegen(cockpit, "a.pdf", b"x", ordner="../draussen", heute=tag)
+
+
+def test_upload_rest(tmp_path, monkeypatch):
+    from fastapi.testclient import TestClient
+    from cockpit_ui import server as srv
+    monkeypatch.setattr(srv, "COCKPIT", tmp_path)
+    monkeypatch.setattr(srv, "HOCHGELADEN", [])
+    with TestClient(srv.app, base_url="http://127.0.0.1:8499") as c:
+        r = c.post("/api/upload", files=[("datei", ("Bericht.pdf", b"%PDF-1.4", "application/pdf")),
+                                         ("datei", (".env", b"x", "text/plain"))])
+        assert r.status_code == 200, r.text
+        j = r.json()
+        assert [a["name"] for a in j["abgelegt"]] == ["Bericht.pdf"] and len(j["fehler"]) == 1
+        assert (tmp_path / j["abgelegt"][0]["pfad"]).read_bytes() == b"%PDF-1.4"
+        assert srv.HOCHGELADEN[0]["pfad"].startswith("inbox/") and srv.HOCHGELADEN[0]["pfad"].endswith("-bericht.pdf")
+        assert c.post("/api/upload", files=[("datei", ("leer.pdf", b"", "application/pdf"))]).status_code == 400

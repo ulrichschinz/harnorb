@@ -84,24 +84,40 @@ async function themeAusBild(datei) {
     toast(`Theme „${r.theme.name}“ aktiv` + (r.verfeinern ? ", HarnoRb verfeinert es gleich." : "."));
   } catch (err) { toast("Theme aus Bild: " + err.message, "fehler"); }
 }
+// Dateien in die Szene ziehen oder einfügen: landen im Eingang des Cockpits, was damit geschieht, sagt man danach
+async function hochladen(liste) {
+  const fd = new FormData();
+  for (const f of liste) fd.append("datei", f, f.name || "eingefuegt.png");
+  try {
+    toast(liste.length > 1 ? `Ich lade ${liste.length} Dateien hoch …` : `Ich lade ${liste[0].name || "die Datei"} hoch …`);
+    const r = await fetch("/api/upload", { method: "POST", body: fd });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.detail || r.statusText);
+    const namen = j.abgelegt.map((a) => a.pfad.split("/").pop()).join(", ");
+    toast(`Abgelegt: ${namen}. Sag mir, was ich damit machen soll.` + (j.fehler.length ? ` Nicht abgelegt: ${j.fehler.join("; ")}` : ""),
+      j.fehler.length ? "fehler" : undefined);
+    fx.ton?.pling?.();
+  } catch (err) { toast("Hochladen: " + err.message, "fehler"); }
+}
 const ablage = document.createElement("div");
 ablage.className = "bild-ablage"; ablage.hidden = true;
-ablage.innerHTML = "<div>Bild loslassen: daraus wird ein Theme</div>";
+ablage.innerHTML = "<div>Loslassen: ich lege die Datei im Cockpit-Eingang ab</div>";
 document.body.appendChild(ablage);
 let ziehen = 0;
-const istBild = (e) => [...(e.dataTransfer?.items || [])].some((i) => i.kind === "file" && /^image\//.test(i.type));
-addEventListener("dragenter", (e) => { if (!istBild(e)) return; e.preventDefault(); ziehen++; ablage.hidden = false; });
-addEventListener("dragover", (e) => { if (istBild(e)) e.preventDefault(); });
+const istDatei = (e) => [...(e.dataTransfer?.types || [])].includes("Files");
+addEventListener("dragenter", (e) => { if (!istDatei(e)) return; e.preventDefault(); ziehen++; ablage.hidden = false; });
+addEventListener("dragover", (e) => { if (istDatei(e)) e.preventDefault(); });
 addEventListener("dragleave", () => { if (--ziehen <= 0) { ziehen = 0; ablage.hidden = true; } });
 addEventListener("drop", (e) => {
   ziehen = 0; ablage.hidden = true;
-  const f = [...(e.dataTransfer?.files || [])].find((x) => /^image\//.test(x.type));
-  if (f) { e.preventDefault(); themeAusBild(f); }
+  const f = [...(e.dataTransfer?.files || [])];
+  if (istDatei(e)) e.preventDefault();
+  if (f.length) hochladen(f);
 });
 addEventListener("paste", (e) => {
   if (e.target.closest?.("input, textarea")) return;
-  const f = [...(e.clipboardData?.files || [])].find((x) => /^image\//.test(x.type));
-  if (f) { e.preventDefault(); themeAusBild(f); }
+  const f = [...(e.clipboardData?.files || [])];
+  if (f.length) { e.preventDefault(); hochladen(f); }
 });
 
 // Grundort und -größe der Kugel je Ansicht

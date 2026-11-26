@@ -9,6 +9,7 @@ person = "Alex"                    # Anrede in der Systemanweisung (leer: „der
 # cockpit = "~/cockpit"            # Cockpit-Ordner; COCKPIT_DIR in der Umgebung geht vor
 namen = ["Musterfirma", "Kim"]     # Eigennamen für die Spracherkennung
 module_pfade = ["~/.config/cockpit-ui/module"]   # eigene Module (Ordner mit __init__.py oder name.py)
+# eingang = "inbox"               # Cockpit-Ordner für Dateien, die man in die Szene zieht
 # aufgaben = "taskwarrior"           # welches Modul die Aufgaben liefert, wenn es mehrere gibt
 
 # Aufgaben aus einem lokalen Taskwarrior
