@@ -27,11 +27,24 @@ function spektrum() {
   return roh.map((c) => new THREE.Vector3(c[0] / summe[0], c[1] / summe[1], c[2] / summe[2]));
 }
 const SPEKTRUM = spektrum();
+// Farben des Kerns (Theme „kugel.galaxie“: innen nach außen) und seines Scheins, als lineare Werte wie im Shader
+const STANDARD_GALAXIE = [[1.0, 0.70, 0.38], [1.0, 0.22, 0.62], [0.48, 0.22, 1.0], [0.12, 0.80, 1.0]];
+const STANDARD_SCHEIN = [0.85, 0.35, 1.0];
+// Hex aus dem Theme -> Shaderwert. Die Standardfarben sind schon „linear“ gemeint, darum ohne Umrechnung.
+const ausHex = (hex, ziel) => { const c = new THREE.Color(); c.setStyle(hex, THREE.NoColorSpace); return ziel.setRGB(c.r, c.g, c.b); };
 
 // Gemeinsam für Hülle und Halo: Filmdicke und Interferenzfarbe
 // Gemeinsam für Hülle und Halo: Filmdicke und Interferenzfarbe
 const FILM = /* glsl */`
 uniform vec3 uSpek[${N_WELLEN}];
+// Theme: Tönung der Interferenzfarben. uTonStaerke 0 = physikalische Farben (Standard), 1 = ganz im Farbton uTon.
+uniform vec3 uTon; uniform float uTonStaerke;
+vec3 toene(vec3 f){
+  if (uTonStaerke <= 0.0) return f;
+  float l = dot(f, vec3(0.2126, 0.7152, 0.0722));
+  vec3 t = uTon / max(dot(uTon, vec3(0.2126, 0.7152, 0.0722)), 1e-3);
+  return mix(f, mix(f * t, l * t * 1.1, 0.7), uTonStaerke);
+}
 mat2 dreh2(float a){ float c = cos(a), s = sin(a); return mat2(c, -s, s, c); }
 // Filmdicke in nm. q: Punkt auf der (verformten) Einheitskugel im Objektraum, t: Filmzeit.
 // Seifenhaut wie unter dem Mikroskop: Schwerkraft zieht den Film nach unten (oben schwarz bis silbern-gold,
@@ -169,6 +182,7 @@ float hash12(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yz
 // Innerer Kern: kleine Spiralgalaxie in einer Kugel (Radius 0,64) mit gold-weißem Herz, magentafarbenen und
 // violetten Armen, türkisfarbenen Außenrändern und dunklen Staubbahnen. Raymarching nur durch die Kernkugel,
 // darum dicht genug für Struktur; die Arme drehen und geben beim Drehen der Kamera echte Parallaxe.
+uniform vec3 uGal[4]; uniform vec3 uSchein;
 vec3 kern(vec3 ro, vec3 rd, out float deckung){
   const float RK = 0.7;
   deckung = 0.0;
@@ -176,7 +190,7 @@ vec3 kern(vec3 ro, vec3 rd, out float deckung){
   // weicher Lichtschein um den Kern, auch für Strahlen, die ihn verfehlen
   float nah = max(0.0, -b);
   float abstand = sqrt(max(dot(ro, ro) - nah * nah, 0.0));
-  vec3 schein = vec3(0.85, 0.35, 1.0) * exp(-abstand * abstand * 9.0) * (0.10 + uTiefe * 0.10 + uSpirale * 0.15 + uPegel * 0.12);
+  vec3 schein = uSchein * exp(-abstand * abstand * 9.0) * (0.10 + uTiefe * 0.10 + uSpirale * 0.15 + uPegel * 0.12);
   if (h <= 0.0) return schein;
   h = sqrt(h);
   float t0 = max(-b - h, 0.0), t1 = -b + h;
@@ -206,9 +220,9 @@ vec3 kern(vec3 ro, vec3 rd, out float deckung){
     float knoten = pow(max(snoise(q * 15.0 + vec3(uZeit * 0.05)), 0.0), 3.0) * arm * scheibe;
     float neb = scheibe * (0.025 + arm * (0.25 + 1.1 * nb * nb)) + bulge * 0.3;
     float k = clamp(r / RK, 0.0, 1.0);
-    vec3 farbe = mix(vec3(1.0, 0.70, 0.38), vec3(1.0, 0.22, 0.62), smoothstep(0.06, 0.34, k));
-    farbe = mix(farbe, vec3(0.48, 0.22, 1.0), smoothstep(0.34, 0.68, k));
-    farbe = mix(farbe, vec3(0.12, 0.80, 1.0), smoothstep(0.62, 0.98, k) * (0.4 + 0.6 * nb));
+    vec3 farbe = mix(uGal[0], uGal[1], smoothstep(0.06, 0.34, k));
+    farbe = mix(farbe, uGal[2], smoothstep(0.34, 0.68, k));
+    farbe = mix(farbe, uGal[3], smoothstep(0.62, 0.98, k) * (0.4 + 0.6 * nb));
     vec3 em = farbe * neb * (3.0 + uTiefe * 2.8 + uSpirale * 1.5 + uPegel * 0.8) + vec3(1.0, 0.92, 0.82) * herz * (3.5 + uPegel * 2.5) + vec3(1.0, 0.55, 0.85) * knoten * (9.0 + uPegel * 3.0);
     float dichte = neb * 2.4 + staub * 10.0 + herz * 3.0;
     summe += T * em * st;
@@ -226,7 +240,7 @@ void main(){
 
   float t = uFilmZeit;
   float d = filmDicke(vPosO, t) + uPegel * 16.0 * sin(t * 0.9 + vPosO.y * 1.6);
-  vec3 film = duennschicht(d, cosI);
+  vec3 film = toene(duennschicht(d, cosI));
   vec3 col = edel(film);
   // untere Bänder etwas zurücknehmen (sonst neonhaft), gläserner statt glühend
   float unten = smoothstep(-0.05, -0.85, vPosO.y);
@@ -331,7 +345,7 @@ void main(){
   vec3 q = normalize(uRandZuO * vec3(cos(w), sin(w), 0.0));
   float g = clamp(0.5 - 0.5 * q.y, 0.0, 1.0);
   float dk = mix(260.0, 560.0, g) + 70.0 * sin(uFilmZeit * 0.21 + q.x * 1.6 + q.z * 1.2);
-  vec3 film = edel(duennschichtGrob(dk, 0.5));
+  vec3 film = toene(edel(duennschichtGrob(dk, 0.5)));
   film = mix(vec3(0.78, 0.74, 1.0) * dot(film, vec3(0.3, 0.59, 0.11)), film, 0.6); // zur Hälfte lavendelweißes Licht
   vec3 c;
   if (uComic > 0.5) {
@@ -440,12 +454,14 @@ export class Kugel {
     this.inneres = new THREE.Group(); // dreht sich langsam, enthält Partikel und Spiralen
     this.gruppe.add(this.inneres);
 
-    const gemeinsam = { uZeit: { value: 0 }, uPegel: { value: 0 }, uFilmZeit: { value: 0 }, uSpek: { value: SPEKTRUM } };
+    const gemeinsam = { uZeit: { value: 0 }, uPegel: { value: 0 }, uFilmZeit: { value: 0 }, uSpek: { value: SPEKTRUM },
+      uTon: { value: new THREE.Color(1, 1, 1) }, uTonStaerke: { value: 0 } };
     this.u = {
       ...gemeinsam, uVerformung: { value: 0.35 }, uStreckung: { value: 0 }, uSaett: { value: 1 }, uHell: { value: 1 },
       uFlacker: { value: 0 }, uSpirale: { value: 0 }, uSchwarz: { value: 0 }, uLadung: { value: 0 }, uComic: { value: 0 },
       uSchritte: { value: 14 }, uFarbtempo: { value: 1 }, uTiefe: { value: 0.5 }, uKameraO: { value: new THREE.Vector3(0, 0, 10) },
       uObjZuWelt: { value: new THREE.Matrix3() },
+      uGal: { value: STANDARD_GALAXIE.map((c) => new THREE.Color().setRGB(...c)) }, uSchein: { value: new THREE.Color().setRGB(...STANDARD_SCHEIN) },
     };
     this.huelle = new THREE.Mesh(new THREE.SphereGeometry(1, 192, 144), new THREE.ShaderMaterial({
       uniforms: this.u, vertexShader: HUELLE_VS, fragmentShader: HUELLE_FS, transparent: true, depthWrite: false,
@@ -462,7 +478,7 @@ export class Kugel {
     this.kontur.visible = false;
     this.gruppe.add(this.kontur);
 
-    this.haloU = { uZeit: gemeinsam.uZeit, uFilmZeit: gemeinsam.uFilmZeit, uSpek: gemeinsam.uSpek, uStaerke: { value: 1 }, uSaett: this.u.uSaett,
+    this.haloU = { uZeit: gemeinsam.uZeit, uFilmZeit: gemeinsam.uFilmZeit, uSpek: gemeinsam.uSpek, uTon: gemeinsam.uTon, uTonStaerke: gemeinsam.uTonStaerke, uStaerke: { value: 1 }, uSaett: this.u.uSaett,
       uPegel: gemeinsam.uPegel, uComic: this.u.uComic, uLadung: this.u.uLadung, uLinien: { value: 0 }, uRandZuO: { value: new THREE.Matrix3() } };
     this.halo = new THREE.Mesh(new THREE.PlaneGeometry(6, 6), new THREE.ShaderMaterial({
       uniforms: this.haloU, vertexShader: HALO_VS, fragmentShader: HALO_FS, transparent: true,
@@ -527,6 +543,17 @@ export class Kugel {
     this.u.uSchritte.value = p.schritte;
     const ziel = Math.round(2600 * p.partikel);
     if (!this.partikel || this.partikel.geometry.attributes.aBahn.count !== ziel) this._baueKleinteile(ziel);
+  }
+
+  // Theme (Abschnitt „kugel“): toenung (#hex), toenung_staerke (0..1), galaxie ([4 × #hex]), schein (#hex).
+  // Fehlt ein Wert, gilt der eingebaute.
+  setzeTheme(k = {}) {
+    const u = this.u;
+    if (k.toenung) ausHex(k.toenung, u.uTon.value); else u.uTon.value.setRGB(1, 1, 1);
+    u.uTonStaerke.value = k.toenung ? Math.min(1, Math.max(0, Number(k.toenung_staerke ?? 0.5))) : 0;
+    const gal = Array.isArray(k.galaxie) && k.galaxie.length === 4 ? k.galaxie : null;
+    u.uGal.value.forEach((c, i) => (gal ? ausHex(gal[i], c) : c.setRGB(...STANDARD_GALAXIE[i])));
+    if (k.schein) ausHex(k.schein, u.uSchein.value); else u.uSchein.value.setRGB(...STANDARD_SCHEIN);
   }
 
   setzeStil(stil) {

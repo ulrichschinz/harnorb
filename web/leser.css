@@ -6,7 +6,7 @@
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: var(--grund); color: var(--text); font: 16px/1.65 "Inter", system-ui, -apple-system, sans-serif; }
-.kopf { position: sticky; top: 0; z-index: 2; display: flex; gap: 12px; align-items: center; padding: 10px 20px; background: rgba(11, 13, 22, .92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--linie); }
+.kopf { position: sticky; top: 0; z-index: 2; display: flex; gap: 12px; align-items: center; padding: 10px 20px; background: color-mix(in srgb, var(--grund) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--linie); }
 .pfad { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; gap: 2px; font-size: 13px; color: var(--leise); }
 .pfad a { color: var(--leise); text-decoration: none; padding: 2px 4px; border-radius: 6px; }
 .pfad a:hover { color: var(--text); background: rgba(255, 255, 255, .06); }
@@ -40,7 +40,7 @@ html, body { margin: 0; height: 100%; background: var(--grund); color: var(--tex
 .doc code { background: var(--code); border-radius: 5px; padding: 1px 5px; font: 13.5px ui-monospace, Menlo, monospace; }
 .doc pre { background: var(--code); border: 1px solid var(--linie); border-radius: 10px; padding: 14px 16px; overflow: auto; }
 .doc pre code { background: none; padding: 0; }
-.doc blockquote { margin: 16px 0; padding: 4px 16px; border-left: 3px solid var(--akzent2); color: #cfcbe0; }
+.doc blockquote { margin: 16px 0; padding: 4px 16px; border-left: 3px solid var(--akzent2); color: color-mix(in srgb, var(--text) 82%, var(--grund)); }
 .doc table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 14.5px; display: block; overflow-x: auto; }
 .doc th, .doc td { border-bottom: 1px solid var(--linie); padding: 7px 10px; text-align: left; vertical-align: top; }
 .doc th { color: var(--leise); font-weight: 600; font-size: 12.5px; letter-spacing: .04em; text-transform: uppercase; }

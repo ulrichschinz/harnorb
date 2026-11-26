@@ -9,7 +9,8 @@ import { Automat, ZUSTAENDE } from "./zustand.js";
 import { Gespraech, api } from "./gespraech.js";
 import { Freisprechen } from "./freisprechen.js";
 import { naeher, warte } from "./tween.js";
-import { ladeModule, geladen as modulWeb, kartenArten, effekte } from "./erweiterungen.js";
+import { ladeModule, geladen as modulWeb, kartenArten, effekte, meldeTheme } from "./erweiterungen.js";
+import { szeneVariablen, setzeVariablen, ladeTheme, bildLaden, palette, verkleinert } from "/static/theme.js";
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -45,11 +46,63 @@ function setzeStil(s, h, { sofort = false } = {}) {
     stil = s;
     kugel.setzeStil(s); hintergrund.setzeStil(s);
     document.body.dataset.stil = s;
-    buehne.bloomZiel = s === "comic" ? 0.3 : 0.5;
+    buehne.bloomZiel = s === "comic" ? 0.3 : themeLeuchten;
     buehne.finish.uniforms.uComic.value = s === "comic" ? 1 : 0;
   }
   if (h) hintergrund.setzeArt(h, sofort);
 }
+
+// ---------- Theme: CSS-Variablen, Kugel, Hintergrund, Leuchten ----------
+let themeLeuchten = 0.5, aktivesTheme = null;
+function wendeThemeAn(t) {
+  if (!t) return;
+  aktivesTheme = t;
+  setzeVariablen(szeneVariablen(t));
+  kugel.setzeTheme(t.kugel || {});
+  hintergrund.setzeTheme(t.hintergrund || {});
+  themeLeuchten = t.leuchten ?? 0.5;
+  if (stil !== "comic") buehne.bloomZiel = themeLeuchten;
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", t.farben?.grund || "#020308");
+  $("#leser-rahmen")?.contentWindow?.postMessage({ theme: t }, location.origin);
+  meldeTheme(t);
+  if (konfigOffen) zeigeThemes();
+}
+async function themeWechsel(t) {
+  if (!reduziert) { automat.kurz("uebergangBis", 500); fx.hyperraum(600); await warte(250); }
+  wendeThemeAn(t);
+}
+ladeTheme().then(wendeThemeAn).catch((e) => console.warn(e));
+
+// Bild in die Szene ziehen oder einfügen: sofort ein Theme aus den Hauptfarben, Claude verfeinert es mit Blick aufs Bild
+async function themeAusBild(datei) {
+  if (!datei || !/^image\//.test(datei.type)) return toast("Das ist kein Bild.", "fehler");
+  try {
+    toast("Ich lese die Farben aus dem Bild …");
+    const img = await bildLaden(datei);
+    const farben = palette(img).map((x) => x.farbe);
+    const r = await api("/api/theme/bild", { method: "POST", body: JSON.stringify({ palette: farben, bild: verkleinert(img) }) });
+    toast(`Theme „${r.theme.name}“ aktiv` + (r.verfeinern ? ", HarnoRb verfeinert es gleich." : "."));
+  } catch (err) { toast("Theme aus Bild: " + err.message, "fehler"); }
+}
+const ablage = document.createElement("div");
+ablage.className = "bild-ablage"; ablage.hidden = true;
+ablage.innerHTML = "<div>Bild loslassen: daraus wird ein Theme</div>";
+document.body.appendChild(ablage);
+let ziehen = 0;
+const istBild = (e) => [...(e.dataTransfer?.items || [])].some((i) => i.kind === "file" && /^image\//.test(i.type));
+addEventListener("dragenter", (e) => { if (!istBild(e)) return; e.preventDefault(); ziehen++; ablage.hidden = false; });
+addEventListener("dragover", (e) => { if (istBild(e)) e.preventDefault(); });
+addEventListener("dragleave", () => { if (--ziehen <= 0) { ziehen = 0; ablage.hidden = true; } });
+addEventListener("drop", (e) => {
+  ziehen = 0; ablage.hidden = true;
+  const f = [...(e.dataTransfer?.files || [])].find((x) => /^image\//.test(x.type));
+  if (f) { e.preventDefault(); themeAusBild(f); }
+});
+addEventListener("paste", (e) => {
+  if (e.target.closest?.("input, textarea")) return;
+  const f = [...(e.clipboardData?.files || [])].find((x) => /^image\//.test(x.type));
+  if (f) { e.preventDefault(); themeAusBild(f); }
+});
 
 // Grundort und -größe der Kugel je Ansicht
 function kugelLayout() {
@@ -132,6 +185,7 @@ const g = new Gespraech({
       case "stimmen": pruefeStatus(); break;
       case "leser": leserEreignis(m); break;
       case "einstellung": wendeEinstellung(m.name, m.wert); break;
+      case "theme": themeWechsel(m.theme); break;
     }
   },
   audioStart: () => automat.setze("spricht", true),
@@ -362,6 +416,7 @@ document.addEventListener("keydown", (e) => {
   if (k === "r") return frage("Lass uns die Inbox klären, Eintrag für Eintrag.");
   if (k === "s") return g.szene("stil", { stil: stil === "comic" ? "leuchtend" : "comic" });
   if (k === "b") return g.szene("stil", { hintergrund: hintergrund.art === "mond" ? "raumer" : "mond" });
+  if (k === "c") return api("/api/themes").then((r) => { const i = r.themes.findIndex((t) => t.id === r.aktiv); return themeAktion({ aktion: "waehle", name: r.themes[(i + 1) % r.themes.length].id }); });
   if (k === "m") { fx.ton.setze(!fx.ton.an); return toast(fx.ton.an ? "Effekttöne an." : "Effekttöne aus."); }
   if (k === "q") { const r = ["auto", "hoch", "mittel", "niedrig"]; const w = r[(r.indexOf(buehne.stufeWahl) + 1) % r.length]; buehne.waehleStufe(w); merke("harno-stufe", w); return toast("Qualität: " + w); }
   if (k === "f") { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen?.().catch(() => {}); }
@@ -435,7 +490,7 @@ function zeigeDiagStatus() {
     ...(s.module || []).map((m) => [m.titel, (m.ok ? "" : "⚠ ") + m.text]),
     ...(s.modul_fehler || []).map((f) => ["Fehler", f]),
     ...modulWeb.map((m) => [`${m.name} (Browser)`, m.ok ? `${[...kartenArten.values()].filter((a) => a.modul === m.name).length} Kartenarten · ${[...effekte.values()].filter((x) => x.modul === m.name).length} Effekte` : "⚠ " + m.fehler]),
-    ["Stil", stil + " · " + hintergrund.art],
+    ["Stil", stil + " · " + hintergrund.art + " · " + (aktivesTheme?.name || "")],
   ].map(([a, b]) => `<div><span>${esc(a)}</span><b>${esc(b)}</b></div>`).join("");
 }
 $("#d-vorlesen").checked = lies("harno-vorlesen", "an") !== "aus";
@@ -518,8 +573,26 @@ api("/api/leser").then((r) => { if (r.pfad != null) oeffneLeser(r.pfad); }).catc
 let konfigOffen = false;
 function schalteKonfig(an = !konfigOffen) {
   konfigOffen = an; $("#konfig").classList.toggle("da", an);
-  if (an) pruefeStatus();
+  if (an) { pruefeStatus(); zeigeThemes(); }
 }
+async function zeigeThemes() {
+  try {
+    const r = await api("/api/themes"), sel = $("#k-theme");
+    sel.innerHTML = r.themes.map((t) => `<option value="${esc(t.id)}"${t.id === r.aktiv ? " selected" : ""}>${esc(t.name)}${t.eingebaut ? "" : " (eigen)"}</option>`).join("");
+    const t = r.themes.find((x) => x.id === r.aktiv);
+    $("#k-theme-info").textContent = t?.beschreibung || "";
+    $("#k-theme-weg").disabled = !t || t.eingebaut;
+  } catch (err) { $("#k-theme-info").textContent = "Themes: " + err.message; }
+}
+async function themeAktion(daten) {
+  try { const r = await api("/api/theme", { method: "POST", body: JSON.stringify(daten) }); toast(r.text); }
+  catch (err) { toast("Theme: " + err.message, "fehler"); }
+  zeigeThemes();
+}
+$("#k-theme").onchange = (e) => themeAktion({ aktion: "waehle", name: e.target.value });
+$("#k-theme-weg").onclick = () => { const id = $("#k-theme").value; if (confirm(`Theme „${id}“ löschen?`)) themeAktion({ aktion: "loesche", name: id }); };
+$("#k-theme-bild").onclick = () => $("#k-theme-datei").click();
+$("#k-theme-datei").onchange = (e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) themeAusBild(f); };
 function zeigeDienste(dienste) {
   const box = $("#k-dienste");
   if (!dienste || !dienste.length) { box.innerHTML = `<p class="k-hinweis">Noch kein Stimmendienst angebunden.</p>`; return; }

@@ -169,6 +169,12 @@ in `beispiele/module/zettel/` (in `module_pfade` eintragen, `[module.zettel]`). 
   `position` und `opacity` des Kartenelements nicht setzen.
 - Texte aus den Daten immer mit `h.esc()` einsetzen.
 - Stylesheets nur über `harnorb.stil()` oder `harnorb.stilDatei()`; eingebettete `<style>`-Elemente blockiert die CSP.
+- **Themes:** Farben nicht fest eintragen, sondern die CSS-Variablen des Kerns nehmen, dann passt das Modul
+  zu jedem Theme: `--text`, `--leise`, `--flaeche`, `--tief`, `--grund`, `--akzent`, `--hinweis`, `--nutzer`,
+  `--ok`, `--warn`, `--rand`, `--irid` (Verlauf), `--schrift`. Abgestufte Töne mit
+  `color-mix(in srgb, var(--flaeche) 60%, transparent)`. Wer Farben in JavaScript braucht (Canvas, three.js),
+  liest `harnorb.theme()` und meldet sich mit `harnorb.beiTheme((t) => …)` für Wechsel an. Eine bewusst eigene
+  Optik wie der gelbe Zettel im Beispiel darf bleiben.
 - Scheitert eine Kartenart oder ein Effekt, zeichnet der Kern die Standardkarte bzw. entfernt die Karte;
   die Meldung steht in der Browser-Konsole, geladene Browser-Teile zeigt die Diagnose (Taste D).
 - Module laufen mit vollen Rechten, im Server wie im Browser. Nur eigene Dateien einbinden.

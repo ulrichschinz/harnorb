@@ -64,14 +64,17 @@ Du steuerst, was zu sehen ist, mit den Werkzeugen des MCP-Servers „szene“ (m
 - Bittet {wer} um eine Übersicht, einen Bericht oder eine Grafik, erstelle sie mit erstelle_dokument (wird im Cockpit
   abgelegt und gleich im Leser gezeigt) und sag nur kurz, was zu sehen ist. Für Abläufe und Architektur mermaid,
   für Zahlen chart; html nur, wenn freie Gestaltung wirklich nötig ist.
-- Cockpit-Dateien („zeig mir STATUS“, „öffne das Projekt …“) öffnest du mit zeige_datei, Blättern und Schließen mit leser.""")
+- Cockpit-Dateien („zeig mir STATUS“, „öffne das Projekt …“) öffnest du mit zeige_datei, Blättern und Schließen mit leser.
+- Farben und Aussehen („mach es wärmer“, „Theme Nordlicht“, „bau mir ein Theme in Herbstfarben“) steuerst du mit theme:
+  waehle für vorhandene, speichere für neue (erst zeige für das aktuelle als Vorlage). Ein Bild für ein Theme zieht {wer}
+  einfach in die Szene oder fügt es ein.""")
     zusatz = [b.strip() for b in bausteine if b and b.strip()]
     if zusatz:
         teile.append("\nAngebundene Module:\n" + "\n".join(f"- {b}" for b in zusatz))
     return "\n".join(teile)
 
 
-SZENE_WERKZEUGE = ["zeige_liste", "waehle", "fokus", "ausblenden", "erledigt", "zeige_text", "zeige_optionen", "stil", "einstellung",
+SZENE_WERKZEUGE = ["zeige_liste", "waehle", "fokus", "ausblenden", "erledigt", "zeige_text", "zeige_optionen", "stil", "theme", "einstellung",
                    "stimmendienst", "zeige_datei", "erstelle_dokument", "leser"]
 AUFGABEN_WERKZEUGE = ("zeige_liste", "waehle", "fokus", "erledigt")   # nur mit Aufgabenmodul
 
@@ -113,6 +116,13 @@ def szene_server(aufruf, namen=None):
                  obj({"frage": s, "optionen": {"type": "array", "items": s}}, ["optionen"])),
         werkzeug("stil", "Ändert das Aussehen: stil leuchtend | comic, hintergrund mond | raumer.",
                  obj({"stil": s, "hintergrund": s})),
+        werkzeug("theme", "Themes der Oberfläche (Farben, Verlauf, Kugel, Hintergrund). aktion: liste | zeige (name leer = aktives, "
+                 "liefert JSON) | waehle (name) | speichere (theme: vollständiges oder teilweises Theme-Objekt, wird aktiv; "
+                 "aktivieren=false nur ablegen) | loesche (name). Aufbau: {id, name, beschreibung, farben: {grund, flaeche, tief, "
+                 "text, akzent, hinweis, nutzer, ok, warn}, verlauf: [3–9 #hex], schrift?, kugel: {toenung: #hex|null, "
+                 "toenung_staerke: 0–1, galaxie: [4 #hex innen→außen], schein}, hintergrund: {nebel: [3 dunkle #hex], licht, "
+                 "art: mond|raumer|null}, stil: leuchtend|comic|null, leuchten: 0.1–1.2}. Farben als #rrggbb, immer dunkles Theme.",
+                 obj({"aktion": s, "name": s, "theme": {"type": ["object", "string"]}, "aktivieren": {"type": "boolean"}}, ["aktion"])),
         werkzeug("einstellung", "Schaltet einen Menüpunkt der Oberfläche. name: stimme | vorlesen | toene | untertitel | "
                  "freisprechen | diagnose | hilfe | qualitaet. wert: bei stimme ein Name (z. B. Lily) oder lokal; bei qualitaet auto | hoch | "
                  "mittel | niedrig; sonst an | aus. Ohne wert: Stand und Möglichkeiten.",
@@ -329,8 +339,9 @@ class ClaudeAgent:
     def laeuft(self):
         return self.zug is not None
 
-    async def sende(self, prompt, anzeige=None, quelle="text"):
-        """Schickt eine Nachricht des Nutzers. Läuft gerade ein Zug, wird sie in diesen eingereiht."""
+    async def sende(self, prompt, anzeige=None, quelle="text", bilder=None):
+        """Schickt eine Nachricht des Nutzers. Läuft gerade ein Zug, wird sie in diesen eingereiht.
+        bilder: Bild-Blöcke der Messages-API ({"type": "image", "source": {…}}), stehen vor dem Text."""
         uid = str(uuidlib.uuid4())
         eigener_zug = self.zug is None
         self.offene.add(uid)
@@ -338,7 +349,8 @@ class ClaudeAgent:
         self.melde({"typ": "nutzer", "zug": zug, "id": uid, "text": anzeige or prompt, "quelle": quelle})
 
         async def nachricht():
-            yield {"type": "user", "message": {"role": "user", "content": prompt},
+            inhalt = [*bilder, {"type": "text", "text": prompt}] if bilder else prompt
+            yield {"type": "user", "message": {"role": "user", "content": inhalt},
                    "parent_tool_use_id": None, "uuid": uid}
         try:
             await self._verbinde()

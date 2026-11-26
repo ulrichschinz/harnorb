@@ -15,6 +15,10 @@
 //   harnorb.fx       Effekte des Kerns: strahlZwischen(a, b, staerke), funken(ort, n), portalAuf(), portalZu(),
 //                  portalOrt(), hyperraum(ms), ton.{auf, zu, zap, laden, whoosh}
 //   harnorb.stil(css) hängt Stylesheet-Text an, harnorb.stilDatei(pfad) eine CSS-Datei aus dem web-Ordner,
+//   harnorb.theme() liefert das aktive Theme (Farben, Verlauf …, Aufbau in src/cockpit_ui/themes.py),
+//   harnorb.beiTheme(fn) ruft fn(theme) bei jedem Wechsel auf (und gleich, wenn schon eins da ist).
+//   Farben am besten gar nicht fest eintragen, sondern die CSS-Variablen des Kerns nehmen: --text, --leise,
+//   --flaeche, --tief, --grund, --akzent, --hinweis, --nutzer, --ok, --warn, --rand, --irid (Verlauf), --schrift.
 //   harnorb.modul ist der Modulname,
 //   harnorb.url(pfad) die Adresse einer Datei im eigenen web-Ordner.
 import * as THREE from "three";
@@ -24,10 +28,23 @@ export const API_VERSION = 1;
 export const kartenArten = new Map();   // name -> { karte, fokus, klasse, modul }
 export const effekte = new Map();       // name -> { fn, modul }
 export const geladen = [];              // { name, ok, fehler }
+let theme = null;
+const themeHoerer = new Set();
+// Vom Kern bei jedem Themewechsel gerufen; ein Fehler in einem Modul hält die anderen nicht auf
+export function meldeTheme(t) {
+  theme = t;
+  for (const fn of themeHoerer) { try { fn(t); } catch (e) { console.warn("beiTheme:", e); } }
+}
 
 export function schnittstelle(modul, fx) {
   return {
     version: API_VERSION, modul, fx, THREE, tween, ease, warte,
+    theme: () => theme,
+    beiTheme(fn) {
+      if (typeof fn !== "function") throw new Error("beiTheme: Funktion fehlt");
+      themeHoerer.add(fn);
+      if (theme) { try { fn(theme); } catch (e) { console.warn("beiTheme:", e); } }
+    },
     url: (pfad) => `/modul/${encodeURIComponent(modul)}/${String(pfad).replace(/^\/+/, "")}`,
     kartenArt(name, def) {
       if (!def || typeof def.karte !== "function") throw new Error(`kartenArt ${name}: karte(el, k, hilfe) fehlt`);

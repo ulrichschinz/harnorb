@@ -13,7 +13,7 @@ from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconn
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import bedienung, dateien, konfig, module, schnellbefehl, stimmen
+from . import bedienung, dateien, konfig, module, schnellbefehl, stimmen, themes
 from .agent import AUFGABEN_WERKZEUGE, ClaudeAgent, sprechstil, szene_werkzeuge
 from .attrappe import AttrappenAgent
 from .einstellungen import Einstellungen
@@ -424,6 +424,11 @@ async def szene_werkzeug(name, args):
         try:
             return leser_werkzeug(name, args or {})
         except dateien.DateiFehler as e:
+            raise SzenenFehler(str(e)) from None
+    if name == "theme":
+        try:
+            return theme_aktion(args or {})
+        except themes.ThemeFehler as e:
             raise SzenenFehler(str(e)) from None
     if name == "stimmendienst":
         a = args or {}
@@ -879,6 +884,106 @@ async def gespraech(ws: WebSocket):
         schreib_task.cancel()
         if q in S.abos:
             S.abos.remove(q)
+
+
+# ---------- Themes ----------
+
+def _theme_melden(t):
+    S.rundruf({"typ": "theme", "theme": t})
+    art = (t.get("hintergrund") or {}).get("art")
+    if t.get("stil") or art:   # Theme bringt Stil oder Hintergrund mit: wie ein Wechsel per Werkzeug stil
+        starte(SZ.setze_stil(t.get("stil"), art))
+
+
+def theme_aktion(a):
+    """Werkzeug theme und REST: liste | zeige | waehle | speichere | loesche. -> Antworttext"""
+    aktion = str(a.get("aktion") or "liste").strip().lower()
+    if aktion == "liste":
+        return f"Aktiv: {themes.aktiv()['name']}. Themes: " + ", ".join(
+            t["name"] + ("" if t["eingebaut"] else " (eigen)") for t in themes.liste()) + "."
+    if aktion == "zeige":
+        t = themes.finde(a["name"]) if a.get("name") else themes.aktiv()
+        return json.dumps(t, ensure_ascii=False)
+    if aktion == "waehle":
+        t = themes.setze_aktiv(a.get("name") or a.get("id") or "")
+        _theme_melden(t)
+        return f"Theme {t['name']} aktiv."
+    if aktion == "speichere":
+        roh = a.get("theme")
+        if isinstance(roh, str):
+            try:
+                roh = json.loads(roh)
+            except ValueError:
+                raise themes.ThemeFehler("theme ist kein gültiges JSON.") from None
+        t = themes.speichere(roh)
+        if a.get("aktivieren", True) is not False:
+            themes.setze_aktiv(t["id"])
+            _theme_melden(t)
+        return f"Theme {t['name']} gespeichert ({t['id']})" + (" und aktiv." if a.get("aktivieren", True) is not False else ".")
+    if aktion == "loesche":
+        t = themes.loesche(a.get("name") or "")
+        _theme_melden(themes.aktiv())
+        return f"Theme {t['name']} gelöscht."
+    raise themes.ThemeFehler("aktion: liste | zeige | waehle | speichere | loesche")
+
+
+BILD = re.compile(r"data:image/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)")
+THEME_AUFTRAG = """\
+{wer} hat ein Bild in die Oberfläche gezogen und möchte daraus ein Theme für HarnoRb. Ein schnelles Theme aus den \
+Hauptfarben ist schon aktiv (id {id}). Schau dir das Bild an und verbessere es: Erfasse Stimmung und Farbwelt, gib dem \
+Theme einen kurzen, treffenden Namen und eine Beschreibung in einem Satz, und speichere es mit theme (aktion speichere, \
+gleiche id {id}). Regeln: dunkles Theme (grund und tief sehr dunkel, text sehr hell, gut lesbar), akzent und verlauf aus den \
+prägenden Farben des Bildes, kugel.toenung im Hauptton (toenung_staerke 0.3 bis 0.7), galaxie vier Farben von innen \
+(hell) nach außen, hintergrund.nebel drei dunkle Töne, passt ein comic-artiges Bild, stil comic. Sag danach in einem Satz, \
+was du gemacht hast.
+Hauptfarben (häufigste zuerst): {palette}
+Aktuelles Theme: {theme}"""
+
+
+@app.get("/api/theme")
+def theme_aktiv():
+    return themes.aktiv()
+
+
+@app.get("/api/themes")
+def theme_liste():
+    return {"aktiv": themes.aktiv_id(), "themes": themes.liste()}
+
+
+@app.post("/api/theme")
+async def theme_rest(request: Request):
+    try:
+        a = await request.json()
+    except Exception:
+        raise HTTPException(400, "Kein gültiges JSON")
+    try:
+        return {"text": theme_aktion(a if isinstance(a, dict) else {}), "theme": themes.aktiv()}
+    except themes.ThemeFehler as e:
+        raise HTTPException(400, str(e)) from None
+
+
+@app.post("/api/theme/bild")
+async def theme_aus_bild(request: Request):
+    """Bild (als data-URL, im Browser verkleinert) und seine Hauptfarben: sofort ein Theme aus der Palette,
+    dann darf Claude es mit Blick auf das Bild verbessern (verfeinern=false lässt das weg)."""
+    try:
+        a = await request.json()
+    except Exception:
+        raise HTTPException(400, "Kein gültiges JSON")
+    palette = [f for f in (a.get("palette") or [])[:16] if isinstance(f, str)]
+    try:
+        t = themes.speichere(themes.aus_palette(palette, str(a.get("name") or "")[:60]))
+        themes.setze_aktiv(t["id"])
+    except themes.ThemeFehler as e:
+        raise HTTPException(400, str(e)) from None
+    _theme_melden(t)
+    m = BILD.fullmatch(str(a.get("bild") or ""))
+    if a.get("verfeinern", True) and m and len(m.group(2)) < 2_000_000:
+        auftrag = THEME_AUFTRAG.format(wer=K.person or "Der Nutzer", id=t["id"], palette=", ".join(palette),
+                                       theme=json.dumps(t, ensure_ascii=False))
+        bild = {"type": "image", "source": {"type": "base64", "media_type": f"image/{m.group(1)}", "data": m.group(2)}}
+        starte(agent.sende(f"[Szene: {SZ.kontext()}]\n\n{auftrag}", anzeige="Theme aus einem Bild", quelle="theme", bilder=[bild]))
+    return {"theme": t, "verfeinern": bool(m)}
 
 
 # ---------- Leser: Cockpit-Dateien und von HarnoRb erzeugte Dokumente ----------

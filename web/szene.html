@@ -74,6 +74,16 @@
     <p class="k-hinweis" id="k-stimme-info"></p>
   </section>
   <section class="k-teil">
+    <h4>Theme <small>(Farben der Oberfläche)</small></h4>
+    <div class="d-steuer">
+      <select id="k-theme" title="Theme (C wechselt)"></select>
+      <button id="k-theme-bild" type="button" title="oder ein Bild in die Szene ziehen bzw. einfügen">Aus Bild …</button>
+      <button id="k-theme-weg" type="button" title="eigenes Theme löschen">Löschen</button>
+      <input id="k-theme-datei" type="file" accept="image/*" hidden>
+    </div>
+    <p class="k-hinweis" id="k-theme-info"></p>
+  </section>
+  <section class="k-teil">
     <h4>Stimmendienste <small>(eigene TTS-Server, Protokoll http-tts)</small></h4>
     <div id="k-dienste" class="k-dienste"></div>
     <form id="k-neu" class="k-neu">
@@ -104,6 +114,7 @@
       <dt><kbd>U</kbd> <kbd>D</kbd> <kbd>K</kbd></dt><dd>Untertitel · Diagnose · Konfiguration (Stimme, Stimmendienste)</dd>
       <dt><kbd>V</kbd></dt><dd>Freisprechen: ohne Taste sprechen, nach einer kurzen Pause antwortet HarnoRb</dd>
       <dt><kbd>S</kbd> <kbd>B</kbd></dt><dd>Stil leuchtend/Comic · Hintergrund Mond/Kugelraumer</dd>
+      <dt><kbd>C</kbd></dt><dd>nächstes Theme · Bild in die Szene ziehen oder einfügen: daraus wird ein Theme („mach es wärmer“ geht auch)</dd>
       <dt><kbd>Q</kbd> <kbd>M</kbd> <kbd>F</kbd></dt><dd>Qualität · Effekttöne · Vollbild</dd>
       <dt>sagen</dt><dd>„Was kann ich sagen?“ zeigt alle Sprachbefehle, z. B. „Stimme Lily“, „Vorlesen aus“</dd>
     </dl>

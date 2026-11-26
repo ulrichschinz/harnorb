@@ -1,13 +1,20 @@
 /* HarnoRb: Leinwand und schlanke Überlagerungen. Alles außer Kugel, Hintergrund und Statuspunkt ist anfangs leer. */
 :root {
   --text: #eef1ff;
-  --leise: rgba(220, 228, 255, 0.58);
-  --glas: rgba(14, 18, 38, 0.58);
-  --glas-hell: rgba(40, 48, 90, 0.42);
-  --rand: rgba(170, 190, 255, 0.22);
+  --leise: color-mix(in srgb, var(--text) 58%, transparent);
+  --glas: color-mix(in srgb, var(--tief) 58%, transparent);
+  --glas-hell: color-mix(in srgb, var(--flaeche) 42%, transparent);
+  --rand: color-mix(in srgb, var(--akzent) 22%, transparent);
   --irid: conic-gradient(from var(--w, 0deg), #ff6ad5, #c774e8, #ad8cff, #8795e8, #94d0ff, #7cf5d4, #f6f98e, #ffb86b, #ff6ad5);
   --warn: #ff9a7a;
   --ok: #7cf5d4;
+  /* Theme: alle Flächen leiten sich aus wenigen Farben ab (web/theme.js setzt sie, Module dürfen sie lesen) */
+  --grund: #020308;          /* hinter der Szene */
+  --flaeche: #242c5c;        /* Karten, Tafeln, Chips (oben links im Verlauf) */
+  --tief: #0a0c1e;           /* dunkle Innenflächen, Verlaufsende */
+  --akzent: #96aaff;         /* Schein und Hover */
+  --hinweis: #ffe08a;        /* heute, erledigt */
+  --nutzer: #ffc0a8;         /* was der Nutzer gesagt hat */
   --schrift: "SF Pro Display", -apple-system, "Segoe UI Variable Display", "Segoe UI", Inter, Roboto, system-ui, sans-serif;
   --schmal: "SF Pro Text", -apple-system, "Segoe UI", Inter, Roboto, system-ui, sans-serif;
   color-scheme: dark;
@@ -16,7 +23,7 @@
 @keyframes drehen { to { --w: 360deg; } }
 
 * { box-sizing: border-box; }
-html, body { margin: 0; height: 100%; overflow: hidden; background: #020308; color: var(--text); font: 15px/1.45 var(--schmal); -webkit-font-smoothing: antialiased; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--grund); color: var(--text); font: 15px/1.45 var(--schmal); -webkit-font-smoothing: antialiased; }
 #buehne, .leinwand, .css3d { position: fixed; inset: 0; }
 .leinwand { display: block; width: 100%; height: 100%; }
 .css3d { pointer-events: none; }
@@ -55,65 +62,65 @@ button { font: inherit; color: inherit; }
 .knopf.an .mikro { fill: #fff; transform: scale(1.08); }
 .knopf:not(.bereit) .mikro { fill: rgba(235, 240, 255, .35); }
 .knopf-text { position: fixed; left: 0; right: 0; bottom: max(6px, calc(env(safe-area-inset-bottom) - 16px)); text-align: center; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--leise); z-index: 15; pointer-events: none; opacity: .55; }
-body[data-zustand="zuhoeren"] .knopf-text { color: #ffc0a8; opacity: 1; }
+body[data-zustand="zuhoeren"] .knopf-text { color: var(--nutzer); opacity: 1; }
 
 /* ---------- Karten (CSS3D) ---------- */
 .karte { pointer-events: auto; cursor: pointer; display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px 12px 12px; border-radius: 14px;
-  background: linear-gradient(140deg, rgba(36, 44, 92, .62), rgba(10, 12, 30, .66)); color: var(--text);
+  background: linear-gradient(140deg, color-mix(in srgb, var(--flaeche) 62%, transparent), color-mix(in srgb, var(--tief) 66%, transparent)); color: var(--text);
   border: 1px solid var(--rand); box-shadow: 0 10px 40px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .09);
   backdrop-filter: blur(8px) saturate(1.3); -webkit-backdrop-filter: blur(8px) saturate(1.3); transition: border-color .3s, box-shadow .3s, background .3s; user-select: none; }
-.karte:hover { border-color: rgba(200, 215, 255, .5); }
-.karte .nr { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font: 650 13px/1 var(--schrift); color: #0b0d1c;
+.karte:hover { border-color: color-mix(in srgb, var(--akzent) 50%, transparent); }
+.karte .nr { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font: 650 13px/1 var(--schrift); color: var(--tief);
   background: var(--irid); }
 .karte .inhalt { min-width: 0; }
 .karte .titel { font: 600 15px/1.3 var(--schrift); letter-spacing: .005em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .karte .meta { margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px 8px; font-size: 11.5px; color: var(--leise); }
 .karte .meta .ueberf { color: var(--warn); }
-.karte .meta .heute { color: #ffe08a; }
+.karte .meta .heute { color: var(--hinweis); }
 .karte .meta .laeuft { color: var(--ok); }
 .karte.ueberf { border-color: rgba(255, 140, 110, .38); }
 .karte.projekt .nr { border-radius: 7px; }
-.karte.gewaehlt { border-color: transparent; background: linear-gradient(140deg, rgba(58, 70, 140, .82), rgba(18, 20, 48, .82)) padding-box, linear-gradient(#0c0f26, #0c0f26) padding-box, var(--irid) border-box; border: 1.5px solid transparent;
-  box-shadow: 0 0 34px rgba(150, 170, 255, .35), 0 12px 46px rgba(0, 0, 0, .5); animation: drehen 5s linear infinite; }
+.karte.gewaehlt { border-color: transparent; background: linear-gradient(140deg, color-mix(in srgb, color-mix(in srgb, var(--flaeche), white 18%) 82%, transparent), color-mix(in srgb, var(--tief) 82%, transparent)) padding-box, linear-gradient(var(--tief), var(--tief)) padding-box, var(--irid) border-box; border: 1.5px solid transparent;
+  box-shadow: 0 0 34px color-mix(in srgb, var(--akzent) 35%, transparent), 0 12px 46px rgba(0, 0, 0, .5); animation: drehen 5s linear infinite; }
 /* Darstellungshinweise der Module */
 .karte.mit-farbe { border-color: color-mix(in srgb, var(--modulfarbe) 55%, transparent); box-shadow: inset 3px 0 0 var(--modulfarbe); }
 .karte.mit-farbe .nr { background: var(--modulfarbe); }
 .fokuskarte.mit-farbe { border-color: color-mix(in srgb, var(--modulfarbe) 55%, transparent); }
 .karte .unterzeile, .fokuskarte .unterzeile { margin-top: 3px; font-size: 12.5px; color: var(--leise); }
 .symbol { margin-right: 6px; }
-.meta .abz, .kopf .abz { padding: 0 6px; border-radius: 6px; background: color-mix(in srgb, var(--modulfarbe, #9db8ff) 22%, transparent); color: var(--modulfarbe, #cfdcff); }
-.karte.erledigt { border-color: #ffe08a; box-shadow: 0 0 50px rgba(255, 224, 138, .7); }
-.listentitel { pointer-events: none; font: 600 13px/1 var(--schrift); letter-spacing: .3em; text-transform: uppercase; color: rgba(225, 232, 255, .72); text-shadow: 0 0 18px rgba(140, 160, 255, .6); white-space: nowrap; }
+.meta .abz, .kopf .abz { padding: 0 6px; border-radius: 6px; background: color-mix(in srgb, var(--modulfarbe, var(--akzent)) 22%, transparent); color: var(--modulfarbe, #cfdcff); }
+.karte.erledigt { border-color: var(--hinweis); box-shadow: 0 0 50px color-mix(in srgb, var(--hinweis) 70%, transparent); }
+.listentitel { pointer-events: none; font: 600 13px/1 var(--schrift); letter-spacing: .3em; text-transform: uppercase; color: color-mix(in srgb, var(--text) 72%, transparent); text-shadow: 0 0 18px color-mix(in srgb, var(--akzent) 60%, transparent); white-space: nowrap; }
 
 .fokuskarte { pointer-events: auto; padding: 26px 30px 22px; border-radius: 22px; color: var(--text);
-  background: linear-gradient(150deg, rgba(40, 50, 110, .7), rgba(8, 10, 28, .78)) padding-box, linear-gradient(#0a0d22, #0a0d22) padding-box, var(--irid) border-box; border: 1.5px solid transparent;
-  box-shadow: 0 0 80px rgba(130, 150, 255, .25), 0 30px 90px rgba(0, 0, 0, .6); animation: drehen 12s linear infinite; }
+  background: linear-gradient(150deg, color-mix(in srgb, var(--flaeche) 70%, transparent), color-mix(in srgb, var(--tief) 78%, transparent)) padding-box, linear-gradient(var(--tief), var(--tief)) padding-box, var(--irid) border-box; border: 1.5px solid transparent;
+  box-shadow: 0 0 80px color-mix(in srgb, var(--akzent) 25%, transparent), 0 30px 90px rgba(0, 0, 0, .6); animation: drehen 12s linear infinite; }
 .fokuskarte .kopf { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12.5px; color: var(--leise); align-items: center; }
 .fokuskarte .marke { font: 650 11px/1 var(--schrift); letter-spacing: .22em; text-transform: uppercase; color: #fff; padding: 5px 9px; border-radius: 99px; background: rgba(255, 255, 255, .1); }
-.fokuskarte .ueberf { color: var(--warn); } .fokuskarte .heute { color: #ffe08a; } .fokuskarte .laeuft { color: var(--ok); }
+.fokuskarte .ueberf { color: var(--warn); } .fokuskarte .heute { color: var(--hinweis); } .fokuskarte .laeuft { color: var(--ok); }
 .fokuskarte h1 { font: 650 clamp(24px, 3.1vw, 36px)/1.15 var(--schrift); letter-spacing: -.01em; margin: 14px 0 12px; }
-.fokuskarte .notizen { list-style: none; padding: 0; margin: 0 0 12px; font-size: 14px; color: rgba(230, 235, 255, .85); }
+.fokuskarte .notizen { list-style: none; padding: 0; margin: 0 0 12px; font-size: 14px; color: color-mix(in srgb, var(--text) 85%, transparent); }
 .fokuskarte .notizen li { padding: 6px 0; border-top: 1px solid rgba(255, 255, 255, .08); }
 .fokuskarte .notizen small { color: var(--leise); margin-right: 10px; }
 .fokuskarte .leise { color: var(--leise); }
 .fokuskarte .hinweise { margin-top: 8px; font-size: 12px; color: var(--leise); }
 
 .chip { pointer-events: auto; cursor: pointer; padding: 11px 14px; border-radius: 99px; text-align: center; font: 600 14px/1.2 var(--schrift);
-  background: linear-gradient(140deg, rgba(36, 44, 92, .72), rgba(10, 12, 30, .72)) padding-box, linear-gradient(#0b0e22, #0b0e22) padding-box, var(--irid) border-box; border: 1px solid transparent;
+  background: linear-gradient(140deg, color-mix(in srgb, var(--flaeche) 72%, transparent), color-mix(in srgb, var(--tief) 72%, transparent)) padding-box, linear-gradient(var(--tief), var(--tief)) padding-box, var(--irid) border-box; border: 1px solid transparent;
   box-shadow: 0 8px 30px rgba(0, 0, 0, .45); animation: drehen 8s linear infinite; }
 .chip .nr { opacity: .55; margin-right: 6px; }
-.chip:hover { box-shadow: 0 0 30px rgba(150, 170, 255, .45); }
+.chip:hover { box-shadow: 0 0 30px color-mix(in srgb, var(--akzent) 45%, transparent); }
 
 /* ---------- Text-Tafel ---------- */
 .tafel { position: fixed; left: 50%; top: 50%; width: min(760px, calc(100vw - 32px)); max-height: 72vh; display: flex; flex-direction: column; z-index: 12;
   padding: 26px 30px 16px; border-radius: 22px; color: var(--text);
-  background: linear-gradient(150deg, rgba(34, 42, 96, .72), rgba(8, 10, 26, .86)) padding-box, linear-gradient(#090c1f, #090c1f) padding-box, var(--irid) border-box; border: 1.5px solid transparent;
-  box-shadow: 0 0 90px rgba(130, 150, 255, .22), 0 40px 120px rgba(0, 0, 0, .7); backdrop-filter: blur(14px) saturate(1.3); -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  background: linear-gradient(150deg, color-mix(in srgb, var(--flaeche) 72%, transparent), color-mix(in srgb, var(--tief) 86%, transparent)) padding-box, linear-gradient(var(--tief), var(--tief)) padding-box, var(--irid) border-box; border: 1.5px solid transparent;
+  box-shadow: 0 0 90px color-mix(in srgb, var(--akzent) 22%, transparent), 0 40px 120px rgba(0, 0, 0, .7); backdrop-filter: blur(14px) saturate(1.3); -webkit-backdrop-filter: blur(14px) saturate(1.3);
   transform: translate(-50%, -50%) perspective(1200px) rotateX(62deg) translateZ(-420px) scale(.6); opacity: 0; transition: transform .75s cubic-bezier(.2, 1.25, .35, 1), opacity .45s; animation: drehen 14s linear infinite; }
 .tafel.da { transform: translate(-50%, -50%) perspective(1200px) rotateX(0) translateZ(0) scale(1); opacity: 1; }
 .tafel.weg { transform: translate(-50%, -50%) perspective(1200px) rotateX(-40deg) translateZ(-700px) scale(.5); opacity: 0; transition: transform .55s cubic-bezier(.6, 0, .8, .4), opacity .45s; }
 .tafel h2 { font: 650 22px/1.2 var(--schrift); margin: 0 0 12px; }
-.t-inhalt { overflow: auto; font-size: 16px; line-height: 1.6; color: rgba(236, 240, 255, .92); padding-right: 6px; }
+.t-inhalt { overflow: auto; font-size: 16px; line-height: 1.6; color: color-mix(in srgb, var(--text) 92%, transparent); padding-right: 6px; }
 .t-inhalt code { background: rgba(255, 255, 255, .08); padding: 1px 5px; border-radius: 4px; }
 .t-fuss { margin-top: 10px; font-size: 12px; color: var(--leise); }
 
@@ -140,14 +147,14 @@ body[data-zustand="zuhoeren"] .knopf-text { color: #ffc0a8; opacity: 1; }
 .untertitel.da { opacity: 1; transform: translateX(-50%); }
 /* Bei offener Diagnose (rechts, bis 420 px) rücken die Untertitel in den freien Bereich links davon */
 body.diag-offen .untertitel { left: calc((100vw - min(420px, 100vw)) / 2); width: min(900px, calc(100vw - min(420px, 100vw) - 32px)); }
-.ut-uli { font-size: 13px; color: #ffc0a8; margin-bottom: 6px; }
+.ut-uli { font-size: 13px; color: var(--nutzer); margin-bottom: 6px; }
 .ut-uli:not(:empty)::before { content: "Du: "; opacity: .6; }
-.ut-claude { display: inline; font: 500 19px/1.5 var(--schrift); padding: 4px 10px; color: #fff; background: rgba(4, 6, 18, .55); border-radius: 8px; box-decoration-break: clone; -webkit-box-decoration-break: clone; text-shadow: 0 1px 2px #000; }
+.ut-claude { display: inline; font: 500 19px/1.5 var(--schrift); padding: 4px 10px; color: #fff; background: color-mix(in srgb, var(--tief) 55%, transparent); border-radius: 8px; box-decoration-break: clone; -webkit-box-decoration-break: clone; text-shadow: 0 1px 2px #000; }
 .ut-claude:empty { display: none; }
 
 /* ---------- Diagnose ---------- */
 .diagnose { position: fixed; top: 0; right: 0; bottom: 0; width: min(420px, 100vw); z-index: 25; display: flex; flex-direction: column; gap: 10px; padding: 14px 14px 12px;
-  background: rgba(6, 8, 20, .84); border-left: 1px solid var(--rand); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  background: color-mix(in srgb, var(--tief) 84%, transparent); border-left: 1px solid var(--rand); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
   transform: translateX(105%); transition: transform .45s cubic-bezier(.2, .9, .3, 1); font-size: 13px; }
 .diagnose.da { transform: none; }
 .d-kopf { display: flex; justify-content: space-between; align-items: center; }
@@ -163,7 +170,7 @@ body.diag-offen .untertitel { left: calc((100vw - min(420px, 100vw)) / 2); width
 .d-zeile { display: grid; grid-template-columns: 70px 1fr; gap: 8px; padding: 4px 0; border-bottom: 1px solid rgba(255, 255, 255, .04); }
 .d-zeile .art { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--leise); padding-top: 2px; }
 .d-zeile .txt { white-space: pre-wrap; word-break: break-word; }
-.d-zeile.uli .txt { color: #ffc0a8; }
+.d-zeile.uli .txt { color: var(--nutzer); }
 .d-zeile.werkzeug .txt { font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: #c9b8ff; }
 .d-zeile.werkzeug.fertig .txt::after { content: " ✓"; color: var(--ok); }
 .d-zeile.werkzeug.fehlerhaft .txt::after { content: " ✗"; color: var(--warn); }
@@ -175,27 +182,34 @@ body.diag-offen .untertitel { left: calc((100vw - min(420px, 100vw)) / 2); width
 /* ---------- Eingabe, Hilfe, Hinweise ---------- */
 .eingabe { position: fixed; left: 50%; bottom: 118px; transform: translateX(-50%); width: min(640px, calc(100vw - 32px)); z-index: 16; }
 .eingabe input { width: 100%; padding: 13px 18px; border-radius: 99px; font: 16px var(--schmal); color: var(--text);
-  background: linear-gradient(#0a0c1e, #0a0c1e) padding-box, var(--irid) border-box; border: 1.5px solid transparent; outline: none; animation: drehen 6s linear infinite; }
-.hilfe { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: rgba(2, 3, 10, .55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+  background: linear-gradient(var(--tief), var(--tief)) padding-box, var(--irid) border-box; border: 1.5px solid transparent; outline: none; animation: drehen 6s linear infinite; }
+.hilfe { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: color-mix(in srgb, var(--tief) 55%, transparent); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
 .hilfe[hidden] { display: none; }
-.hilfe-karte { width: min(620px, calc(100vw - 32px)); max-height: 88vh; overflow: auto; padding: 24px 28px; border-radius: 20px; background: rgba(12, 14, 34, .9); border: 1px solid var(--rand); }
+.hilfe-karte { width: min(620px, calc(100vw - 32px)); max-height: 88vh; overflow: auto; padding: 24px 28px; border-radius: 20px; background: color-mix(in srgb, var(--tief) 90%, transparent); border: 1px solid var(--rand); }
 .hilfe-karte h3 { margin: 0 0 12px; font: 650 19px var(--schrift); }
 .hilfe-karte dl { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; margin: 0 0 12px; font-size: 14px; }
-.hilfe-karte dt { white-space: nowrap; } .hilfe-karte dd { margin: 0; color: rgba(230, 235, 255, .82); }
+.hilfe-karte dt { white-space: nowrap; } .hilfe-karte dd { margin: 0; color: color-mix(in srgb, var(--text) 82%, transparent); }
 .hilfe-karte p { color: var(--leise); font-size: 13px; margin: 0; }
 .toasts { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 35; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; width: calc(100vw - 32px); }
-.toast { padding: 9px 16px; border-radius: 99px; font-size: 13.5px; background: rgba(14, 18, 40, .82); border: 1px solid var(--rand); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+.toast { padding: 9px 16px; border-radius: 99px; font-size: 13.5px; background: color-mix(in srgb, var(--tief) 82%, transparent); border: 1px solid var(--rand); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
   opacity: 0; transform: translateY(-10px) scale(.96); transition: opacity .35s, transform .35s; max-width: 640px; text-align: center; }
 .toast.da { opacity: 1; transform: none; }
 .toast.fehler { border-color: rgba(255, 120, 100, .5); color: #ffd0c4; }
 .vorschau-leiste { position: fixed; left: 16px; right: 60px; top: 12px; z-index: 22; font-size: 12px; color: var(--text); display: flex; flex-wrap: wrap; gap: 4px 12px; pointer-events: none; }
 .vorschau-leiste .leise { color: var(--leise); width: 100%; }
 
+/* Bild für ein Theme: Ablagefläche beim Ziehen */
+.bild-ablage { position: fixed; inset: 0; z-index: 45; display: grid; place-items: center; pointer-events: none;
+  background: color-mix(in srgb, var(--tief) 55%, transparent); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+.bild-ablage[hidden] { display: none; }
+.bild-ablage div { padding: 28px 40px; border-radius: 22px; font: 600 18px/1.3 var(--schrift); color: var(--text);
+  background: linear-gradient(var(--tief), var(--tief)) padding-box, var(--irid) border-box; border: 2px dashed transparent; animation: drehen 4s linear infinite; }
+
 /* Comic-Stil: kräftigere Konturen der Überlagerungen */
-body[data-stil="comic"] .karte, body[data-stil="comic"] .chip { border: 2.5px solid #0a0a12; box-shadow: 5px 5px 0 rgba(0, 0, 0, .75); background: linear-gradient(140deg, #3d3f9e, #1b1c55); }
+body[data-stil="comic"] .karte, body[data-stil="comic"] .chip { border: 2.5px solid #0a0a12; box-shadow: 5px 5px 0 rgba(0, 0, 0, .75); background: linear-gradient(140deg, color-mix(in srgb, var(--flaeche), white 14%), color-mix(in srgb, var(--flaeche), black 40%)); }
 body[data-stil="comic"] .karte .titel, body[data-stil="comic"] .fokuskarte h1, body[data-stil="comic"] .listentitel { font-family: "Avenir Next Condensed", "Arial Narrow", var(--schrift); font-weight: 800; letter-spacing: .02em; }
-body[data-stil="comic"] .karte.gewaehlt { background: linear-gradient(140deg, #6b4fd8, #2b2380); box-shadow: 6px 6px 0 #000, 0 0 30px rgba(255, 220, 120, .55); border-color: #ffe08a; }
-body[data-stil="comic"] .fokuskarte, body[data-stil="comic"] .tafel { background: linear-gradient(150deg, #34368f, #14143f); border: 3px solid #0a0a12; box-shadow: 8px 8px 0 #000; }
+body[data-stil="comic"] .karte.gewaehlt { background: linear-gradient(140deg, color-mix(in srgb, var(--akzent) 60%, var(--flaeche)), color-mix(in srgb, var(--flaeche), black 30%)); box-shadow: 6px 6px 0 #000, 0 0 30px rgba(255, 220, 120, .55); border-color: var(--hinweis); }
+body[data-stil="comic"] .fokuskarte, body[data-stil="comic"] .tafel { background: linear-gradient(150deg, color-mix(in srgb, var(--flaeche), white 8%), color-mix(in srgb, var(--flaeche), black 45%)); border: 3px solid #0a0a12; box-shadow: 8px 8px 0 #000; }
 
 @media (max-width: 640px) {
   .karte .titel { font-size: 14px; }
@@ -225,12 +239,12 @@ body[data-stil="comic"] .fokuskarte, body[data-stil="comic"] .tafel { background
 
 /* Leser (L): große, ruhige Fläche vor der Szene; die Kugel bleibt am Rand sichtbar */
 .leser { position: fixed; inset: 4vh 4vw 4vh 4vw; z-index: 24; display: flex; flex-direction: column; border-radius: 18px; overflow: hidden;
-  background: #0b0d16; border: 1px solid rgba(255, 255, 255, .12); box-shadow: 0 30px 80px rgba(0, 0, 0, .6), 0 0 0 1px rgba(185, 166, 255, .08);
+  background: var(--tief); border: 1px solid rgba(255, 255, 255, .12); box-shadow: 0 30px 80px rgba(0, 0, 0, .6), 0 0 0 1px rgba(185, 166, 255, .08);
   opacity: 0; transform: translateY(16px) scale(.985); transition: opacity .35s ease, transform .35s ease; }
 .leser.da { opacity: 1; transform: none; }
 .leser-kopf { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px 8px 16px; border-bottom: 1px solid rgba(255, 255, 255, .08); font-size: 13px; }
 .leser-kopf b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .leser-kopf button { background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .14); border-radius: 8px; padding: 4px 10px; color: var(--text); font: inherit; cursor: pointer; }
 .leser-kopf #leser-zu { font-size: 18px; line-height: 1; padding: 2px 9px; }
-.leser iframe { flex: 1; border: 0; width: 100%; background: #0b0d16; }
+.leser iframe { flex: 1; border: 0; width: 100%; background: var(--tief); }
 @media (max-width: 700px) { .leser { inset: 0; border-radius: 0; } }

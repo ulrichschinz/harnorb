@@ -30,7 +30,7 @@ class AttrappenAgent:
     def laeuft(self):
         return self.zug is not None
 
-    async def sende(self, prompt, anzeige=None, quelle="text"):
+    async def sende(self, prompt, anzeige=None, quelle="text", bilder=None):
         if self.zug is None:
             self.zug_nr += 1
             self.zug = self.zug_nr

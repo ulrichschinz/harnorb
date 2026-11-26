@@ -5,10 +5,15 @@ import { RAUSCHEN } from "./glsl.js";
 import { tween, ease } from "./tween.js";
 
 const SONNE = new THREE.Vector3(0.85, 0.35, 0.55).normalize();
+// Theme (Abschnitt „hintergrund“): nebel [3 × #hex], licht (#hex, Lichtnetz und Leuchten der Körper)
+const STANDARD_NEBEL = [[0.20, 0.06, 0.32], [0.02, 0.18, 0.30], [0.30, 0.10, 0.18]];
+const STANDARD_LICHT = [0.25, 0.85, 1.0];
+const ausHex = (hex, ziel) => { const c = new THREE.Color(); c.setStyle(hex, THREE.NoColorSpace); return ziel.setRGB(c.r, c.g, c.b); };
 
 const NEBEL_VS = /* glsl */`varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
 const NEBEL_FS = /* glsl */`
 uniform float uZeit, uOktaven, uComic, uSaett;
+uniform vec3 uNebel[3];
 varying vec3 vDir;
 ${RAUSCHEN}
 void main(){
@@ -17,9 +22,9 @@ void main(){
   float m = fbmN(d * 4.5 - vec3(0.0, uZeit * 0.003, 0.0) + n, uOktaven);
   float band = exp(-pow(dot(d, normalize(vec3(0.3, 1.0, -0.2))) * 2.4, 2.0)); // Milchstraßenband
   vec3 c = vec3(0.002, 0.003, 0.010);
-  c += vec3(0.20, 0.06, 0.32) * smoothstep(0.0, 0.9, n) * 0.16;
-  c += vec3(0.02, 0.18, 0.30) * smoothstep(0.1, 0.9, m) * 0.12;
-  c += vec3(0.30, 0.10, 0.18) * smoothstep(0.35, 1.0, n * m * 2.0) * 0.12;
+  c += uNebel[0] * smoothstep(0.0, 0.9, n) * 0.16;
+  c += uNebel[1] * smoothstep(0.1, 0.9, m) * 0.12;
+  c += uNebel[2] * smoothstep(0.35, 1.0, n * m * 2.0) * 0.12;
   c += vec3(0.12, 0.11, 0.16) * band * (0.35 + 0.65 * smoothstep(-0.2, 0.6, m)) * 0.16;
   if (uComic > 0.5) c = c * 0.55 + vec3(0.0, 0.004, 0.022);
   float l = dot(c, vec3(0.3, 0.59, 0.11));
@@ -55,7 +60,7 @@ varying vec3 vPosO; varying vec3 vNormW; varying vec3 vPosW;
 void main(){ vPosO = position; vNormW = normalize(mat3(modelMatrix) * normal); vec4 w = modelMatrix * vec4(position, 1.0); vPosW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`;
 const MOND_FS = /* glsl */`
 uniform float uZeit, uComic, uSaett, uNetz;
-uniform vec3 uSonne; uniform mat3 uDreh;
+uniform vec3 uSonne, uLicht; uniform mat3 uDreh;
 varying vec3 vPosO; varying vec3 vNormW; varying vec3 vPosW;
 ${RAUSCHEN}
 float krater(vec3 p, float s){
@@ -90,12 +95,12 @@ void main(){
   float fein = 1.0 - smoothstep(0.0, 0.02, z2.y - z2.x);
   float puls = pow(0.5 + 0.5 * sin(z.z * 60.0 + uZeit * 1.6 - length(p.xy) * 8.0), 8.0);
   float nacht = smoothstep(0.15, -0.25, dot(N, uSonne));
-  vec3 netz = vec3(0.25, 0.85, 1.0) * linie * (0.35 + puls * 2.2) + vec3(1.0, 0.65, 0.25) * fein * 0.25 * (0.4 + puls);
+  vec3 netz = uLicht * linie * (0.35 + puls * 2.2) + vec3(1.0, 0.65, 0.25) * fein * 0.25 * (0.4 + puls);
   // nur auf der Nachtseite und am Terminator (Stadtlichter), auf der Tagseite unsichtbar
   c += netz * uNetz * nacht * 1.2;
   // dünner Lichtsaum am Rand
   float rand = pow(1.0 - max(dot(N, normalize(cameraPosition - vPosW)), 0.0), 3.0);
-  c += vec3(0.35, 0.55, 1.0) * rand * 0.35 * (0.3 + max(dot(N, uSonne), 0.0));
+  c += mix(vec3(0.35, 0.55, 1.0), uLicht, 0.5) * rand * 0.35 * (0.3 + max(dot(N, uSonne), 0.0));
   float l = dot(c, vec3(0.3, 0.59, 0.11));
   gl_FragColor = vec4(mix(vec3(l), c, uSaett), 1.0);
 }`;
@@ -103,7 +108,7 @@ void main(){
 // Kugelraumer: Wabenplatten, Paneelgürtel, Reihen beleuchteter Fenster (nachts heller), gläserne Polkuppeln
 const RAUMER_FS = /* glsl */`
 uniform float uZeit, uComic, uSaett;
-uniform vec3 uSonne;
+uniform vec3 uSonne, uLicht;
 varying vec3 vPosO; varying vec3 vNormW; varying vec3 vPosW;
 ${RAUSCHEN}
 float waben(vec2 uv){
@@ -142,9 +147,9 @@ void main(){
   // Polkuppeln aus Glas mit Leuchtring
   float ap = abs(p.y);
   float kuppel = smoothstep(0.925, 0.935, ap);
-  vec3 glas = vec3(0.03, 0.09, 0.16) + vec3(0.2, 0.55, 1.0) * 0.35 * (0.6 + 0.4 * sin(uZeit * 0.7)) + vec3(glanz * 2.0);
+  vec3 glas = vec3(0.03, 0.09, 0.16) + uLicht * 0.6 * 0.35 * (0.6 + 0.4 * sin(uZeit * 0.7)) + vec3(glanz * 2.0);
   c = mix(c, glas, kuppel);
-  c += vec3(0.4, 0.8, 1.0) * exp(-pow((ap - 0.93) * 140.0, 2.0)) * 0.9;
+  c += uLicht * 1.05 * exp(-pow((ap - 0.93) * 140.0, 2.0)) * 0.9;
   float rand = pow(1.0 - max(dot(N, V), 0.0), 3.0);
   c += vec3(0.4, 0.6, 1.0) * rand * 0.25;
   float l = dot(c, vec3(0.3, 0.59, 0.11));
@@ -153,7 +158,7 @@ void main(){
 // Ringwulst: segmentierte Platten, Triebwerksöffnungen außen (dunkler Schlund, blauweiße Glut), Positionslichter
 const WULST_FS = /* glsl */`
 uniform float uZeit, uComic, uSaett;
-uniform vec3 uSonne;
+uniform vec3 uSonne, uLicht;
 varying vec3 vPosO; varying vec3 vNormW; varying vec3 vPosW;
 void main(){
   vec3 N = normalize(vNormW), V = normalize(cameraPosition - vPosW);
@@ -172,7 +177,7 @@ void main(){
   float wand = exp(-pow((d - 0.95) * 9.0, 2.0)) * aussen;
   float puls = 0.75 + 0.25 * sin(uZeit * 2.5 + floor(w * 16.0 / 6.28318) * 1.3);
   c = mix(c, vec3(0.01, 0.012, 0.02), oeffnung);
-  c += vec3(0.45, 0.8, 1.7) * smoothstep(0.75, 0.0, d) * aussen * puls * 1.8;
+  c += uLicht * 1.7 * smoothstep(0.75, 0.0, d) * aussen * puls * 1.8;
   c += vec3(0.6, 0.7, 0.9) * wand * 0.35;
   // Fensterband auf der Oberseite
   float band = smoothstep(0.035, 0.02, abs(vPosO.z - 0.1)) * step(0.5, fract(w * 160.0 / 6.28318)) * smoothstep(1.02, 0.98, rho);
@@ -212,7 +217,8 @@ export class Hintergrund {
     this.gruppe = new THREE.Group();
     szene.add(this.gruppe);
     this.u = { uZeit: { value: 0 }, uComic: { value: 0 }, uSaett: { value: 1 }, uOktaven: { value: 5 }, uSonne: { value: SONNE.clone() },
-      uNetz: { value: 1 }, uPixel: { value: 1 }, uHyper: { value: 0 } };
+      uNetz: { value: 1 }, uPixel: { value: 1 }, uHyper: { value: 0 },
+      uNebel: { value: STANDARD_NEBEL.map((c) => new THREE.Color().setRGB(...c)) }, uLicht: { value: new THREE.Color().setRGB(...STANDARD_LICHT) } };
 
     this.nebel = new THREE.Mesh(new THREE.SphereGeometry(1500, 48, 32), new THREE.ShaderMaterial({
       uniforms: this.u, vertexShader: NEBEL_VS, fragmentShader: NEBEL_FS, side: THREE.BackSide, depthWrite: false,
@@ -274,6 +280,12 @@ export class Hintergrund {
   }
 
   qualitaet(p) { this.u.uOktaven.value = p.oktaven; this.pr = Math.min(devicePixelRatio || 1, p.pixel); }
+
+  setzeTheme(h = {}) {
+    const nebel = Array.isArray(h.nebel) && h.nebel.length === 3 ? h.nebel : null;
+    this.u.uNebel.value.forEach((c, i) => (nebel ? ausHex(nebel[i], c) : c.setRGB(...STANDARD_NEBEL[i])));
+    if (h.licht) ausHex(h.licht, this.u.uLicht.value); else this.u.uLicht.value.setRGB(...STANDARD_LICHT);
+  }
 
   setzeStil(stil) {
     const comic = stil === "comic";
